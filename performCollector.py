@@ -12,4 +12,6 @@ while True:
    c, addr = s.accept()     # Establish connection with client.
    print 'Got connection from', addr
    c.send('Thank you for connecting')
-   c.close()                
+   c.close()
+#
+                
