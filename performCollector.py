@@ -1,17 +1,42 @@
-#!/usr/bin/python           # This is server.py file
+#!/usr/bin/env python
 
-import socket               # Import socket module
+from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import os
 
-s = socket.socket()         # Create a socket object
-host = socket.gethostname() # Get local machine name
-port = 12345                # Reserve a port for your service.
-s.bind((host, port))        # Bind to the port
+#Create custom HTTPRequestHandler class
+class KodeFunHTTPRequestHandler(BaseHTTPRequestHandler):
+    
+    #handle GET command
+    def do_GET(self):
+        rootdir = 'c:/xampp/htdocs/' #file location
+        try:
+            if self.path.endswith('.html'):
+                f = open(rootdir + self.path) #open requested file
 
-s.listen(5)                 # Now wait for client connection.
-while True:
-   c, addr = s.accept()     # Establish connection with client.
-   print 'Got connection from', addr
-   c.send('Thank you for connecting')
-   c.close()
-#
-                
+                #send code 200 response
+                self.send_response(200)
+
+                #send header first
+                self.send_header('Content-type','text-html')
+                self.end_headers()
+
+                #send file content to client
+                self.wfile.write(f.read())
+                f.close()
+                return
+            
+        except IOError:
+            self.send_error(404, 'file not found')
+    
+def run():
+    print('http server is starting...')
+
+    #ip and port of servr
+    #by default http server port is 80
+    server_address = ('127.0.0.1', 80)
+    httpd = HTTPServer(server_address, KodeFunHTTPRequestHandler)
+    print('http server is running...')
+    httpd.serve_forever()
+    
+if __name__ == '__main__':
+    run()
