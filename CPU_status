@@ -1,0 +1,1 @@
+{"vm1": {"num": 5, "stats": [{"system": 3, "iowait": 5, "idle": 4, "user": 1, "nice": 2}, {"system": 3, "iowait": 5, "idle": 4, "user": 1, "nice": 2}, {"system": 3, "iowait": 5, "idle": 4, "user": 1, "nice": 2}, {"system": 3, "iowait": 5, "idle": 4, "user": 1, "nice": 2}, {"system": 3, "iowait": 5, "idle": 4, "user": 1, "nice": 2}]}}
