@@ -1,40 +1,46 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 
+""" 
+    This class implements a CPU Performance Collector.
+    The collector works as a http server. It recieves the periodical 
+    updates from performance monitors on each VMs and put them into a
+    Map
+""" 
+
+
 #Create custom HTTPRequestHandler class
-class KodeFunHTTPRequestHandler(BaseHTTPRequestHandler):
-    
+class CPUStatusHandler(BaseHTTPRequestHandler):
+
+    def __init__(self):
+        self.stat_table = dict()
+        self.period_boud = 5
+
     #handle GET command
     def do_GET(self):
-        rootdir = 'c:/xampp/htdocs/' #file location
-        try:
-            if self.path.endswith('.html'):
-                f = open(rootdir + self.path) #open requested file
+         self.send_response(200)
+         self.end_headers()
 
-                #send code 200 response
-                self.send_response(200)
+    #handle POST command
+    def do_POST(self):
+        self.send_response(201)
+        self.end_headers()
+        content_type = self.headers.getheader('Content-Type')
+        content_len = self.headers.getheader('Content-Length')
+        post_body = self.rfile.read(int(content_len))
+        print 'body="%s"; type="%s"' % (post_body, content_type)
 
-                #send header first
-                self.send_header('Content-type','text-html')
-                self.end_headers()
 
-                #send file content to client
-                self.wfile.write(f.read())
-                f.close()
-                return
-            
-        except IOError:
-            self.send_error(404, 'file not found')
     
 def run():
     print('http server is starting...')
-
     #ip and port of servr
-    #by default http server port is 80
-    server_address = ('127.0.0.1', 80)
-    httpd = HTTPServer(server_address, KodeFunHTTPRequestHandler)
+    #by default http server port is 8080
+    server_address = ('127.0.0.1', 8081)
+    handle = CPUStatusHandler()
+    httpd = HTTPServer(server_address, handle)
     print('http server is running...')
     httpd.serve_forever()
     
