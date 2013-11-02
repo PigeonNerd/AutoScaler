@@ -69,6 +69,7 @@ class PerfMonitor:
         new_cpu_stat = self._parse_stat(raw_data)
         usage_data = self._cal_cpu_usage(new_cpu_stat)
         self._update_stat(new_cpu_stat)
+        #usage_data = {"user": 1, "nice": 2, "system": 3, "idle": 4, "iowait": 5}
         self._send_req(json.dumps({"vm": self.vm_name, "cpu_stat": usage_data}))
 
     def run_forever(self):
