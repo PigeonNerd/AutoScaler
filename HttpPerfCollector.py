@@ -61,13 +61,13 @@ class CPUStatusHandler(BaseHTTPRequestHandler):
         f.close
 
 def run():
-    print('http server is starting...')
+    #print('http server is starting...')
     #ip and port of servr
     #by default http server port is 8081
     server_address = ('0.0.0.0', 8081)
     #handle = CPUStatusHandler()
     httpd = HTTPServer(server_address, CPUStatusHandler)
-    print('http server is running...')
+    #print('http server is running...')
     httpd.serve_forever()
     
 if __name__ == '__main__':
