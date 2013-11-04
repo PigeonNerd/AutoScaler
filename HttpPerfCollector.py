@@ -15,7 +15,7 @@ stat_table = dict()
 #Number of stats per VM we need to maintain
 statPeriodBound = 5
 #Stat file name
-stat_file = "CPU_status"
+stat_file = "/var/log/cpu_status.log"
 
 #Create custom HTTPRequestHandler class
 class CPUStatusHandler(BaseHTTPRequestHandler):
