@@ -3,6 +3,8 @@
 import urllib2
 import json
 import time
+import socket
+import datetime
 
 """ 
   This class implements a Performance Monitor running on a
@@ -14,10 +16,10 @@ import time
 class PerfMonitor:
 
     def __init__(self):
-        self.vm_name = "vm1"
+        self.vm_name = str(socket.gethostname())
         self.run_int = 2
         self.stat_path = "/proc/stat"
-        self.collector_addr = "http://127.0.0.1:8081"
+        self.collector_addr = "http://vm-collector-host:8081"
         self.cpu_stat = {"user": 0, "nice": 0, "system": 0, "idle": 0, "iowait": 0}
 
     @staticmethod
@@ -25,6 +27,11 @@ class PerfMonitor:
         cpu_times = raw_data.split()[1:6]
         return {"user": int(cpu_times[0]), "nice": int(cpu_times[1]),
                 "system": int(cpu_times[2]), "idle": int(cpu_times[3]), "iowait": int(cpu_times[4])}
+
+    @staticmethod
+    def _get_tiemstamp():
+        ts = time.time()
+        return datetime.datetime.fromtimestamp(ts).strtime('%H:%M:%S %Y-%m-%d')
 
     def _get_cpu_stat(self):
         with open(self.stat_path, 'r') as f:
@@ -40,7 +47,7 @@ class PerfMonitor:
         total_time = user_time + nice_time + system_time + idle_time + iowait_time
         return {"user": user_time * 100 / total_time, "nice": nice_time * 100 / total_time,
                 "system": system_time * 100 / total_time, "idle": idle_time * 100 / total_time,
-                "iowait": iowait_time * 100 / total_time}
+                "iowait": iowait_time * 100 / total_time, "_ts": self._get_timestamp()}
 
     def _update_stat(self, new_cpu_stat):
         self.cpu_stat["user"] = new_cpu_stat["user"]
