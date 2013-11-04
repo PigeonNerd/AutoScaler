@@ -33,9 +33,9 @@ class CPUStatusHandler(BaseHTTPRequestHandler):
         vm = str(jsonMessage["vm"])
         stat = {"user": jsonMessage["cpu_stat"]["user"], "nice": jsonMessage["cpu_stat"]["nice"], 
         "system": jsonMessage["cpu_stat"]["system"], "idle": jsonMessage["cpu_stat"]["idle"], 
-        "iowait": jsonMessage["cpu_stat"]["iowait"]}
+        "iowait": jsonMessage["cpu_stat"]["iowait"], "_ts": jsonMessage["cpu_stat"]["_ts"]}
         self._insert(vm, stat)
-        self._printToFile()
+        self._printToFile(vm)
 
     #insert into the stat table
     def _insert(self, vm, stat):
@@ -53,9 +53,9 @@ class CPUStatusHandler(BaseHTTPRequestHandler):
             stat_table[vm]["stats"] = [stat]
 
     #dump the stat table into a file
-    def _printToFile(self):
-        f = open(stat_file, "w")
-        json.dump(stat_table, f)
+    def _printToFile(self, vm):
+        f = open(stat_file, "a")
+        json.dump(stat_table[vm], f)
         f.close
 
 def run():
