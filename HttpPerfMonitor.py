@@ -30,7 +30,7 @@ class PerfMonitor:
 
     @staticmethod
     def _get_timestamp():
-        return datetime.datetime.now()
+        return str(datetime.datetime.now())
 
     def _get_cpu_stat(self):
         with open(self.stat_path, 'r') as f:
