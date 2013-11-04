@@ -45,7 +45,7 @@ class PerfMonitor:
         iowait_time = new_cpu_stat["iowait"] - self.cpu_stat["iowait"]
         total_time = user_time + nice_time + system_time + idle_time + iowait_time
         return {"user": user_time * 100 / total_time, "nice": nice_time * 100 / total_time,
-                "system": system_time * 100 / total_time, "idle": idle_time * 100 / total_time,
+                "system": system_time * 100 / total_time, "idle": 1 + idle_time * 100 / total_time,
                 "iowait": iowait_time * 100 / total_time, "_ts": self._get_timestamp()}
 
     def _update_stat(self, new_cpu_stat):
@@ -75,7 +75,6 @@ class PerfMonitor:
         new_cpu_stat = self._parse_stat(raw_data)
         usage_data = self._cal_cpu_usage(new_cpu_stat)
         self._update_stat(new_cpu_stat)
-        #usage_data = {"user": 1, "nice": 2, "system": 3, "idle": 4, "iowait": 5}
         self._send_req(json.dumps({"vm": self.vm_name, "cpu_stat": usage_data}))
 
     def run_forever(self):
