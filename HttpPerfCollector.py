@@ -39,7 +39,7 @@ class CPUStatusHandler(BaseHTTPRequestHandler):
 
     #insert into the stat table
     def _insert(self, vm, stat):
-        print stat_table
+        #print stat_table
         if vm in stat_table:
             if stat_table[vm]["num"] < statPeriodBound:
                 stat_table[vm]["stats"].insert(0, stat)
