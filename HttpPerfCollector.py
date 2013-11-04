@@ -55,7 +55,9 @@ class CPUStatusHandler(BaseHTTPRequestHandler):
     #dump the stat table into a file
     def _printToFile(self, vm):
         f = open(stat_file, "a")
+        f.write(vm + ": ")
         json.dump(stat_table[vm], f)
+        f.write("\n")
         f.close
 
 def run():
