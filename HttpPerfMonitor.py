@@ -29,7 +29,7 @@ class PerfMonitor:
                 "system": int(cpu_times[2]), "idle": int(cpu_times[3]), "iowait": int(cpu_times[4])}
 
     @staticmethod
-    def _get_tiemstamp():
+    def _get_timestamp():
         ts = time.time()
         return datetime.datetime.fromtimestamp(ts).strtime('%H:%M:%S %Y-%m-%d')
 
