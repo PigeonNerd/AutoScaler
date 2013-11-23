@@ -5,20 +5,24 @@ import json
 import time
 import socket
 import datetime
+import glob
 
 """ 
-  This class implements a Performance Monitor running on a
-  virtual machine and periodically sending status report to
-  a paired Performance Collector listening on a physical host.
-  Existing implementation ONLY takes CPU usage into consideration
-  and is designed to running on UBUNTU clients ONLY.
 """
 class TomcatMonitor:
 
     def __init__(self):
         self.vm_name = str(socket.gethostname())
         self.run_int = 2
+        self.offset = 0
+        self.tomcat_log_pattern = "/var/log/tomcat7/*_access_log.*.txt"
         self.collector_addr = "http://auto-scaler-server:10086"
+
+    def _read_log(self):
+        logs = glob.glob(self.tomcat_log_pattern)
+        logs.sort();
+        #with open(logs[-1], 'r') as f:
+        return    
 
     def _mk_req(self, data):
         req = urllib2.Request(self.collector_addr)
@@ -44,9 +48,22 @@ class TomcatMonitor:
             time.sleep(self.run_int)
 
 if __name__ == '__main__':
-    try:
-        cli = TomcatMonitor()
-        print "Tomcat Monitor is Running ... "
-        cli.run_forever()
-    except KeyboardInterrupt:
-        print "Tomcat Monitor is Shutting Down ... "
+    files =  glob.glob("/var/log/tomcat7/*access_log*.txt")
+    files.sort()
+    offset = 0
+    with open(files[-1], 'r') as f:
+        f.seek(offset, 0)
+        lines = f.readlines()
+        offset = f.tell()
+        print lines
+    time.sleep(7);
+    with open(files[-1], 'r') as f:
+        f.seek(offset, 0)
+        lines = f.readlines()
+        print lines
+    #try:
+    #    cli = TomcatMonitor()
+    #    print "Tomcat Monitor is Running ... "
+    #    cli.run_forever()
+    #except KeyboardInterrupt:
+    #    print "Tomcat Monitor is Shutting Down ... "
