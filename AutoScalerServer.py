@@ -2,6 +2,8 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 import json
+from AutoScalerCli import Template
+from subprocess import call
 
 """ 
     This class implements a CPU Performance Collector.
@@ -17,6 +19,25 @@ statPeriodBound = 5
 #Stat file name
 stat_file = "collect.log"
 
+
+#bunch of options for launching a vm
+flavor = 1
+key_name = ''
+image = ''
+security_group = ''
+
+"""
+    we have to maintain one template
+"""
+template = ''
+
+def allocate_vm(vmID):
+    call(["nova boot", "--flavor", flavor, "--key_name", key_name, "--image", image, "--security_group default", vmID])
+    # need to send info to the daemon that is responsible for splitters
+
+def de_allocate_vm():
+    print "haha"
+
 #Create custom HTTPRequestHandler class
 class TomcatStatusHandler(BaseHTTPRequestHandler):
 
@@ -27,13 +48,24 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         content_type = self.headers.getheader('Content-Type')
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
-        #print 'body="%s"; type="%s"' % (post_body, content_type)
         jsonMessage = json.loads(post_body)
-        # Convert json Unicode encoding to string
-        vm = str(jsonMessage["vm"])
-        stat = {"res_time": jsonMessage["res_time"]}; 
-        self._insert(vm, stat)
-        self._printToFile(vm)
+
+        # This is to instantiate VMs
+        if self.path.endswith('instantiate'):
+            print 'instantiate'
+            template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
+                jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
+            template.printTemplate()
+            
+        elif self.path.endswith('destroy'):
+            print jsonMessage
+        
+        else :
+            # Convert json Unicode encoding to string
+            vm = str(jsonMessage["vm"])
+            stat = {"res_time": jsonMessage["res_time"]}; 
+            self._insert(vm, stat)
+            self._printToFile(vm)
 
     #insert into the stat table
     def _insert(self, vm, stat):
