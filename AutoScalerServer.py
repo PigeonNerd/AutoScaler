@@ -4,6 +4,8 @@ import os
 import json
 from AutoScalerCli import Template
 from subprocess import call
+import urllib2
+import threading
 
 """ 
     This class implements a CPU Performance Collector.
@@ -16,27 +18,73 @@ from subprocess import call
 stat_table = dict()
 #Number of stats per VM we need to maintain
 statPeriodBound = 5
+# heartbeat periodic
+HEART_BEAT_BOUND = 10
+# pull in progress periodic
+INPROGRESS_BOUND = 5
+
 #Stat file name
 stat_file = "collect.log"
 
+#The server address responsible for nova commands
+nona_service_address = "http://localhost:10087/"
 
-#bunch of options for launching a vm
-flavor = 1
-key_name = ''
-image = ''
-security_group = ''
+# This is a big flag that sets if we already tried to spawn new VMs
+inProgress = False
+inProgress_timer = None
+
+#Threading timer for heartbeat check
+heartbeat_timer = None
 
 """
     we have to maintain one template
 """
 template = ''
 
-def allocate_vm(vmID):
-    call(["nova boot", "--flavor", flavor, "--key_name", key_name, "--image", image, "--security_group default", vmID])
-    # need to send info to the daemon that is responsible for splitters
+def makeReq(action):
+    req = urllib2.Request(collector_addr + action)
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('User-Agent', 'tomcat-monitor/0.0.1')
+    return req
 
-def de_allocate_vm():
-    print "haha"
+def send(req):
+    try:
+        urllib2.urlopen(req)
+    except urllib2.URLError as ue:
+        print ue.reason
+    except urllib2.HTTPError as he:
+        print "%s - %s" % (he.code, he.reason)
+
+def allocate_vm(num):
+   data = json.dumps({"num" : num})
+   req = makeReq('allocate')
+   req.add_data(data)
+   send(req)
+
+def de_allocate_vm(vmID):
+    data = json.dumps({"id" : vmID})
+    req = makeReq('deallocate')
+    req.add_data(data)
+    send(req)
+
+def heartbeat():
+    req = makeReq('heartbeat')
+    response = urllib2.urlopen(req)
+    # TODO: need to check if any vm killed
+
+def check_high_load(vm):
+    if not inProgress and stat_table[vm]["num"] == statPeriodBound:
+        stats = stat_table[vm]["num"]["stats"]
+        for stat in stats:
+            if stat["res_time"] < template.targetTime:
+                return
+        # here means we have high load lasts for 5 seconds
+        return True
+    return False
+
+def pull_inProgress():
+    req = makeReq("isOnline")
+    send(req)
 
 #Create custom HTTPRequestHandler class
 class TomcatStatusHandler(BaseHTTPRequestHandler):
@@ -56,16 +104,32 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
                 jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
             template.printTemplate()
-            
+            allocate_vm(template.minVM)
+            inProgress = True
+            inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress)
+            inProgress_timer.start()
+            heartbeat_timer = threading.Timer(HEART_BEAT_BOUND, heartbeat)
+            heartbeat_timer.start()
+
         elif self.path.endswith('destroy'):
-            print jsonMessage
+            heartbeat_timer.cancel()
+            de_allocate_vm('all')
         
+        elif self.path.endwith('online'):
+            inProgress_timer.cancel()
+            inProgress = False
+
         else :
             # Convert json Unicode encoding to string
             vm = str(jsonMessage["vm"])
             stat = {"res_time": jsonMessage["res_time"]}; 
             self._insert(vm, stat)
-            self._printToFile(vm)
+            #self._printToFile(vm)
+            if len(stat_table) < template.maxVM and check_high_load(vm):
+                allocate_vm(1)
+                inProgress = True
+                inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress)
+                inProgress_timer.start()
 
     #insert into the stat table
     def _insert(self, vm, stat):
