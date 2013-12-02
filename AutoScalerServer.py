@@ -55,14 +55,14 @@ def send(req):
     except urllib2.HTTPError as he:
         print "%s - %s" % (he.code, he.reason)
 
-def allocate_vm(num):
-   data = json.dumps({"num" : num})
+def allocate_vm(vmIDs):
+   data = json.dumps({"ids" : vmIDs})
    req = makeReq('allocate')
    req.add_data(data)
    send(req)
 
-def de_allocate_vm(vmID):
-    data = json.dumps({"id" : vmID})
+def de_allocate_vm(vmIDs):
+    data = json.dumps({"ids" : vmID})
     req = makeReq('deallocate')
     req.add_data(data)
     send(req)
@@ -82,8 +82,10 @@ def check_high_load(vm):
         return True
     return False
 
-def pull_inProgress():
+def pull_inProgress(vmIDs):
     req = makeReq("isOnline")
+    data = json.dumps({"ids" : vmID})
+    req.add_data(data)
     send(req)
 
 #Create custom HTTPRequestHandler class
@@ -104,16 +106,21 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
                 jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
             template.printTemplate()
-            allocate_vm(template.minVM)
+
+            IDs = []
+            for i in range(1,template.minVM + 1):
+                IDs.insert(0, "vm" + i)
+            allocate_vm(IDs)
             inProgress = True
-            inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress)
+            inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress, IDs)
             inProgress_timer.start()
             heartbeat_timer = threading.Timer(HEART_BEAT_BOUND, heartbeat)
             heartbeat_timer.start()
 
         elif self.path.endswith('destroy'):
             heartbeat_timer.cancel()
-            de_allocate_vm('all')
+            IDs = stat_table.keys()
+            de_allocate_vm(IDs)
         
         elif self.path.endwith('online'):
             inProgress_timer.cancel()
