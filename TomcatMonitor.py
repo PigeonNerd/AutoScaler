@@ -7,8 +7,6 @@ import socket
 import datetime
 import glob
 
-""" 
-"""
 class TomcatMonitor:
 
     def __init__(self):
@@ -20,7 +18,7 @@ class TomcatMonitor:
 
     def _read_log(self):
         logs = glob.glob(self.tomcat_log_pattern)
-        logs.sort();
+        logs.sort()
         #with open(logs[-1], 'r') as f:
         return    
 
@@ -56,7 +54,7 @@ if __name__ == '__main__':
         lines = f.readlines()
         offset = f.tell()
         print lines
-    time.sleep(7);
+    time.sleep(7)
     with open(files[-1], 'r') as f:
         f.seek(offset, 0)
         lines = f.readlines()
