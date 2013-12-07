@@ -12,7 +12,7 @@ class TomcatMonitor:
     def __init__(self):
         self.vm_name = str(socket.gethostname())
         self.log_offset = 0
-        self.srv_address = "http://server:10086"
+        self.srv_address = "http://load-balancer:10086"
         self.check_interval = 5
         self.logfile_path = "/var/log/tomcat7/tomcat_access_log.*.txt"
 
@@ -24,8 +24,7 @@ class TomcatMonitor:
             res_time = line.rsplit('-', 1)[1].strip()
             count += 1
             total += int(res_time)
-        print '%d log lines parsed' % count
-        return (total / count) if count != 0 else 0
+        return (total / count) if count != 0 else 0, count
 
     def _read_and_parse_log(self):
         logs = glob.glob(self.logfile_path)
@@ -39,8 +38,9 @@ class TomcatMonitor:
                 f.seek(self.log_offset, 0)  # continue from the last checkpoint
                 lines = f.readlines()
                 self.log_offset = f.tell()  # save the current checkpoint
-            return self._parse_log(lines)
-        return 0  # no log files detected
+            (avg_res, count) = self._parse_log(lines)
+            return {"vm": self.vm_name, "res_time": avg_res, "count": count}
+        return {"vm": self.vm_name, "count": 0}  # no log files detected
 
     def _mk_req(self, data):
         req = urllib2.Request(self.srv_address)
@@ -58,8 +58,8 @@ class TomcatMonitor:
             print "%s - %s" % (he.code, he.reason)
 
     def run_once(self):
-        avg_res = self._read_and_parse_log()
-        self._send_req(json.dumps({"vm": self.vm_name, "res_time": avg_res}))
+        data = self._read_and_parse_log()
+        self._send_req(json.dumps(data))
 
     def run_forever(self):
         while True:
