@@ -28,6 +28,9 @@ nona_service_address = "http://localhost:10087/"
 #Threading timer for heartbeat check
 logging_timer = None
 
+#current number of vms
+numVMs = 0
+
 """
     we have to maintain one template
 """
@@ -47,50 +50,34 @@ def send(req):
     except urllib2.HTTPError as he:
         print "%s - %s" % (he.code, he.reason)
 
-def allocate_vm(vmIDs):
-   data = json.dumps({"ids" : vmIDs})
-   req = makeReq('allocate')
-   req.add_data(data)
-   send(req)
+def allocate_vm():
+    req = makeReq('allocate')
+    send(req)
 
-def de_allocate_vm(vmIDs):
-    data = json.dumps({"ids" : vmID})
+def de_allocate_vm():
     req = makeReq('deallocate')
-    req.add_data(data)
     send(req)
 
 def check_high_load(vm):
-    if stat_table[vm]["num"] == statPeriodBound:
-        stats = stat_table[vm]["num"]["stats"]
-        for stat in stats:
-            if stat["res_time"] < template.targetTime:
-                return False
-        # here means we have high load lasts for 5 seconds
-        return True
-    return False
+    for stat in stat_table:
+        if stat["res_time"] < template.targetTime:
+            return False
+    return True
 
 def check_low_load(vm):
-    if stat_table[vm]["num"] == statPeriodBound:
-        stats = stat_table[vm]["num"]["stats"]
-        for stat in stats:
-            if stat["res_time"] >= template.targetTime:
-                return False
-        # here means we have low load lasts for 5 seconds
-        return True
-    return False
+    for stat in stat_table:
+        if stat["res_time"] > template.targetTime:
+            return False
+    return True
 
 def logging():
     f = open(stat_file, "a")
-    res_time = 0;
-    for vm in stat_table:
-        tmp = 0;
-        for stat in vm["stats"]:
-            tmp += stat["res_time"]
-        res_time += tmp / 1.0 / len(vm["stats"])
-
-    res_time = restime / 1.0 / len(stat_table)
-    stat = {"numVMs": len(stat_table), "res_time": res_time}
-    json.dump(stat, f)
+    res_time = 0
+    for stat in stat_table:
+        res_time += stat["res_time"]
+    res_time = res_time / 1.0 / numVMs
+    stat = {"numVMs" : numVMs, "res_time" : res_time}
+    json.dump( stat,f)
     f.write("\n")
     f.close
 
@@ -112,18 +99,17 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
                 jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
             template.printTemplate()
-
-            IDs = []
-            for i in range(1,template.minVM + 1):
-                IDs.insert(0, "vm" + i)
-            allocate_vm(IDs)
+            while numVMs < template.minVM:
+                numVMs += 1
+                allocate_vm()
             logging_timer = threading.Timer(3.0, logging)
             logging_timer.start()
+
            
         elif self.path.endswith('destroy'):
-            heartbeat_timer.cancel()
-            IDs = stat_table.keys()
-            de_allocate_vm(IDs)
+            while numVMs > 0:
+                numVMs -= 1
+                de_allocate_vm()
             logging_timer.cancel()
         
         else :
@@ -131,34 +117,18 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             if jsonMessage["count"] != 0:
                 vm = str(jsonMessage["vm"])
                 stat = {"res_time": int(jsonMessage["res_time"])}; 
-                self._insert(vm, stat)
-                #self._printToFile(vm)
-                if len(stat_table) < template.maxVM and check_high_load(vm):
-                    id = "vm" + len(stat_table) + 1
-                    allocate_vm([""])
+                self.insert(stat)
+
+                if numVMs < template.maxVM and check_high_load:
+                    numVMs += 1
+                    allocate_vm()
+                elif numVMs > template.minVM and check_low_load:
+                    numVMs -= 1
+                    de_allocate_vm()
 
     #insert into the stat table
-    def _insert(self, vm, stat):
-        #print stat_table
-        if vm in stat_table:
-            if stat_table[vm]["num"] < statPeriodBound:
-                stat_table[vm]["stats"].insert(0, stat)
-                stat_table[vm]["num"] += 1
-            else:
-                stat_table[vm]["stats"].pop()
-                stat_table[vm]["stats"].insert(0, stat)
-        else:
-            stat_table[vm] = dict()
-            stat_table[vm]["num"] = 1
-            stat_table[vm]["stats"] = [stat]
-
-    #dump the stat table into a file
-    def _printToFile(self, vm):
-        f = open(stat_file, "a")
-        f.write(vm + ": ")
-        json.dump(stat_table[vm]["stats"][0], f)
-        f.write("\n")
-        f.close
+    def _insert(self, stat):
+        stat_table.insert(0, stat)
 
 def run():
     #print('http server is starting...')
