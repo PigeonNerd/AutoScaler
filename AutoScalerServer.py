@@ -67,11 +67,6 @@ def de_allocate_vm(vmIDs):
     req.add_data(data)
     send(req)
 
-def heartbeat():
-    req = makeReq('heartbeat')
-    response = urllib2.urlopen(req)
-    # TODO: need to check if any vm killed
-
 def check_high_load(vm):
     if not inProgress and stat_table[vm]["num"] == statPeriodBound:
         stats = stat_table[vm]["num"]["stats"]
@@ -114,8 +109,6 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             inProgress = True
             inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress, IDs)
             inProgress_timer.start()
-            heartbeat_timer = threading.Timer(HEART_BEAT_BOUND, heartbeat)
-            heartbeat_timer.start()
 
         elif self.path.endswith('destroy'):
             heartbeat_timer.cancel()
