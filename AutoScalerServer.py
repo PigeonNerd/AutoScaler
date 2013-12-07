@@ -17,11 +17,7 @@ import threading
 #This is the shared data structure that stores VMs CPU usage
 stat_table = dict()
 #Number of stats per VM we need to maintain
-statPeriodBound = 5
-# heartbeat periodic
-HEART_BEAT_BOUND = 10
-# pull in progress periodic
-INPROGRESS_BOUND = 5
+statPeriodBound = 2
 
 #Stat file name
 stat_file = "collect.log"
@@ -29,12 +25,8 @@ stat_file = "collect.log"
 #The server address responsible for nova commands
 nona_service_address = "http://localhost:10087/"
 
-# This is a big flag that sets if we already tried to spawn new VMs
-inProgress = False
-inProgress_timer = None
-
 #Threading timer for heartbeat check
-heartbeat_timer = None
+logging_timer = None
 
 """
     we have to maintain one template
@@ -68,20 +60,39 @@ def de_allocate_vm(vmIDs):
     send(req)
 
 def check_high_load(vm):
-    if not inProgress and stat_table[vm]["num"] == statPeriodBound:
+    if stat_table[vm]["num"] == statPeriodBound:
         stats = stat_table[vm]["num"]["stats"]
         for stat in stats:
             if stat["res_time"] < template.targetTime:
-                return
+                return False
         # here means we have high load lasts for 5 seconds
         return True
     return False
 
-def pull_inProgress(vmIDs):
-    req = makeReq("isOnline")
-    data = json.dumps({"ids" : vmID})
-    req.add_data(data)
-    send(req)
+def check_low_load(vm):
+    if stat_table[vm]["num"] == statPeriodBound:
+        stats = stat_table[vm]["num"]["stats"]
+        for stat in stats:
+            if stat["res_time"] >= template.targetTime:
+                return False
+        # here means we have low load lasts for 5 seconds
+        return True
+    return False
+
+def logging():
+    f = open(stat_file, "a")
+    res_time = 0;
+    for vm in stat_table:
+        tmp = 0;
+        for stat in vm["stats"]:
+            tmp += stat["res_time"]
+        res_time += tmp / 1.0 / len(vm["stats"])
+
+    res_time = restime / 1.0 / len(stat_table)
+    stat = {"numVMs": len(stat_table), "res_time": res_time}
+    json.dump(stat, f)
+    f.write("\n")
+    f.close
 
 #Create custom HTTPRequestHandler class
 class TomcatStatusHandler(BaseHTTPRequestHandler):
@@ -106,30 +117,25 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             for i in range(1,template.minVM + 1):
                 IDs.insert(0, "vm" + i)
             allocate_vm(IDs)
-            inProgress = True
-            inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress, IDs)
-            inProgress_timer.start()
-
+            logging_timer = threading.Timer(3.0, logging)
+            logging_timer.start()
+           
         elif self.path.endswith('destroy'):
             heartbeat_timer.cancel()
             IDs = stat_table.keys()
             de_allocate_vm(IDs)
+            logging_timer.cancel()
         
-        elif self.path.endwith('online'):
-            inProgress_timer.cancel()
-            inProgress = False
-
         else :
             # Convert json Unicode encoding to string
-            vm = str(jsonMessage["vm"])
-            stat = {"res_time": jsonMessage["res_time"]}; 
-            self._insert(vm, stat)
-            #self._printToFile(vm)
-            if len(stat_table) < template.maxVM and check_high_load(vm):
-                allocate_vm(1)
-                inProgress = True
-                inProgress_timer = threading.timer(INPROGRESS_BOUND, pull_inProgress)
-                inProgress_timer.start()
+            if jsonMessage["count"] != 0:
+                vm = str(jsonMessage["vm"])
+                stat = {"res_time": int(jsonMessage["res_time"])}; 
+                self._insert(vm, stat)
+                #self._printToFile(vm)
+                if len(stat_table) < template.maxVM and check_high_load(vm):
+                    id = "vm" + len(stat_table) + 1
+                    allocate_vm([""])
 
     #insert into the stat table
     def _insert(self, vm, stat):
