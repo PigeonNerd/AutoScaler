@@ -2,10 +2,9 @@
 
 import BaseHTTPServer
 
-""" 
+"""
   This class implements a simple HTTP server for debugging
-  purpose ONLY. It helps to facilitate the unit/functional
-  tests of the HttpPerfMonitor. 
+  purpose ONLY. It helps to facilitate the unit/functional tests.
 """
 class SimpleHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
@@ -23,7 +22,7 @@ class SimpleHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
-        server = BaseHTTPServer.HTTPServer(("127.0.0.1", 8081), SimpleHandler)
+        server = BaseHTTPServer.HTTPServer(("0.0.0.0", 10086), SimpleHandler)
         print 'HTTP Server is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
