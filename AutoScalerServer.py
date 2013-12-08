@@ -15,7 +15,7 @@ import threading
 """ 
 
 #This is the shared data structure that stores VMs CPU usage
-stat_table = dict()
+stat_table = []
 #Number of stats per VM we need to maintain
 statPeriodBound = 2
 
@@ -23,7 +23,7 @@ statPeriodBound = 2
 stat_file = "collect.log"
 
 #The server address responsible for nova commands
-nona_service_address = "http://localhost:10087/"
+nona_service_address = "http://localhost:10086/"
 
 #Threading timer for heartbeat check
 logging_timer = None
@@ -31,13 +31,16 @@ logging_timer = None
 #current number of vms
 numVMs = 0
 
+#time tick
+tick = 0
+
 """
     we have to maintain one template
 """
-template = ''
+template = None
 
 def makeReq(action):
-    req = urllib2.Request(collector_addr + action)
+    req = urllib2.Request(nona_service_address + action)
     req.add_header('Content-Type', 'application/json')
     req.add_header('User-Agent', 'tomcat-monitor/0.0.1')
     return req
@@ -52,10 +55,12 @@ def send(req):
 
 def allocate_vm():
     req = makeReq('allocate')
+    req.get_method = lambda: 'PUT'
     send(req)
 
 def de_allocate_vm():
     req = makeReq('deallocate')
+    req.get_method = lambda: 'DELETE'
     send(req)
 
 def check_high_load(vm):
@@ -76,8 +81,8 @@ def logging():
     for stat in stat_table:
         res_time += stat["res_time"]
     res_time = res_time / 1.0 / numVMs
-    stat = {"numVMs" : numVMs, "res_time" : res_time}
-    json.dump( stat,f)
+    stat = [{"time": tick,"numVMs" : numVMs, "res_time" : res_time}]
+    json.dump(stat, f)
     f.write("\n")
     f.close
 
@@ -92,17 +97,23 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
         jsonMessage = json.loads(post_body)
+        global numVMs
+        global template
+        global logging_timer
+        global tick
 
         # This is to instantiate VMs
         if self.path.endswith('instantiate'):
             print 'instantiate'
             template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
                 jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
+            #global template = temp
             template.printTemplate()
             while numVMs < template.minVM:
                 numVMs += 1
                 allocate_vm()
-            logging_timer = threading.Timer(3.0, logging)
+            logging_timer = threading.Timer(2, logging)
+            tick += 2
             logging_timer.start()
 
            
@@ -119,10 +130,10 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                 stat = {"res_time": int(jsonMessage["res_time"])}; 
                 self.insert(stat)
 
-                if numVMs < template.maxVM and check_high_load:
+                if  numVMs <  template.maxVM and check_high_load:
                     numVMs += 1
                     allocate_vm()
-                elif numVMs > template.minVM and check_low_load:
+                elif  numVMs >  template.minVM and check_low_load:
                     numVMs -= 1
                     de_allocate_vm()
 
@@ -133,8 +144,8 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
 def run():
     #print('http server is starting...')
     #ip and port of servr
-    #by default http server port is 10086
-    server_address = ('0.0.0.0', 10086)
+    #by default http server port is 10088
+    server_address = ('0.0.0.0', 10088)
     #handle = CPUStatusHandler()
     httpd = HTTPServer(server_address, TomcatStatusHandler)
     #print('http server is running...')
