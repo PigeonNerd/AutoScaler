@@ -42,7 +42,7 @@ class PoolManager:
 
     def _open_stack_create_vm_(self, srv_name, metadata):
         srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id, key_name=self.ssh_keyname)
-        time.sleep(5)
+        time.sleep(30)
         self.cli.servers.set_meta(srv, metadata)
         return srv
 
