@@ -93,7 +93,7 @@ def logging():
     json.dump(stat, f)
     f.write("\n")
     f.close
-    logging_timer = threading.Timer(2, logging)
+    logging_timer = threading.Timer(5, logging)
     logging_timer.start()
 
 #Create custom HTTPRequestHandler class
@@ -133,7 +133,9 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         else :
             # Convert json Unicode encoding to string
             if jsonMessage["count"] != 0:
-                stat = {"res_time": float(jsonMessage["res_time"])}; 
+                stat = {"res_time": float(jsonMessage["res_time"])};
+                print "Receive %f, Target %f" % (stat, template.targetTime)
+                print stat_table
                 self._insert(stat)
 
                 if  numVMs <  template.maxVM and check_high_load:
