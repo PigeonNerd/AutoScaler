@@ -3,7 +3,6 @@
 import urllib2
 import json
 import time
-import socket
 import glob
 
 
