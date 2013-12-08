@@ -103,34 +103,32 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         srv_list = manager._vm_pool_list_()
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(json.dump(srv_list))
+        self.wfile.write(json.dumps(srv_list))
         self.wfile.close()
 
     def do_POST(self):
         manager._vm_pool_bulk_()
         srv_list = manager._vm_pool_list_()
-        self.send_response(202)
+        self.send_response(204)
         self.end_headers()
-        self.wfile.write(json.dump(srv_list))
-        self.wfile.close()
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
         self.send_response(201)
         self.end_headers()
-        self.wfile.write(json.dump({'name': srv.name}))
+        self.wfile.write(json.dumps({'name': srv.name}))
         self.wfile.close()
 
     def do_DELETE(self):
         srv = manager._vm_pool_push_()
-        self.send_response(204)
+        self.send_response(202)
         self.end_headers()
-        self.wfile.write(json.dump({'name': srv.name}))
+        self.wfile.write(json.dumps({'name': srv.name}))
         self.wfile.close()
 
 if __name__ == '__main__':
     try:
-        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10086), OpenstackAgent)
+        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
         print 'Openstack Agent is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
