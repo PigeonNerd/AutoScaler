@@ -66,13 +66,13 @@ def de_allocate_vm():
     req.get_method = lambda: 'DELETE'
     send(req)
 
-def check_high_load(vm):
+def check_high_load():
     for stat in stat_table:
         if stat["res_time"] < template.targetTime:
             return False
     return True
 
-def check_low_load(vm):
+def check_low_load():
     for stat in stat_table:
         if stat["res_time"] > template.targetTime:
             return False
@@ -138,11 +138,11 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                 print stat_table
                 self._insert(stat)
 
-                if  numVMs <  template.maxVM and check_high_load:
+                if  numVMs <  template.maxVM and check_high_load():
                     numVMs += 1
                     allocate_vm()
                     print "High load detect ! spawn new VM"
-                elif  numVMs >  template.minVM and check_low_load:
+                elif  numVMs >  template.minVM and check_low_load():
                     numVMs -= 1
                     de_allocate_vm()
                     print "Low load detect ! de-alloc one VM"
