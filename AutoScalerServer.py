@@ -35,6 +35,8 @@ numVMs = 0
 #time tick
 tick = 0
 
+finished = False
+
 """
     we have to maintain one template
 """
@@ -77,16 +79,22 @@ def check_low_load(vm):
     return True
 
 def logging():
+    global tick
+    global logging_timer
+    tick += 2
     print "start to log !"
     f = open(stat_file, "a")
     res_time = 0
     for stat in stat_table:
         res_time += stat["res_time"]
-    res_time = res_time / 1.0 / numVMs
+    if numVMs != 0:
+        res_time = res_time / 1.0 / numVMs
     stat = {"time": tick,"numVMs" : numVMs, "res_time" : res_time}
     json.dump(stat, f)
     f.write("\n")
     f.close
+    logging_timer = threading.Timer(2, logging)
+    logging_timer.start()
 
 #Create custom HTTPRequestHandler class
 class TomcatStatusHandler(BaseHTTPRequestHandler):
@@ -110,21 +118,18 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             template = Template(jsonMessage['maxVM'], jsonMessage['minVM'], 
                 jsonMessage['imagePath'].encode('ascii', 'ignore'), jsonMessage['targetTime'])
             #global template = temp
+            logging()
             template.printTemplate()
             while numVMs < template.minVM:
                 numVMs += 1
                 allocate_vm()
-            logging_timer = threading.Timer(2, logging)
-            tick += 2
-            logging_timer.start()
-
            
         elif self.path.endswith('destroy'):
+            #finished = True
+            logging_timer.cancel()
             while numVMs > 0:
                 numVMs -= 1
                 de_allocate_vm()
-            logging_timer.cancel()
-        
         else :
             # Convert json Unicode encoding to string
             if jsonMessage["count"] != 0:
@@ -160,3 +165,4 @@ def run():
     
 if __name__ == '__main__':
     run()
+    
