@@ -10,7 +10,7 @@ import glob
 class TomcatMonitor:
 
     def __init__(self):
-        self.vm_name = str(socket.gethostname())
+        self.vm_name = str(socket.gethostbyname(socket.gethostname()))
         self.log_offset = 0
         self.srv_address = "http://load-balancer:10086"
         self.check_interval = 5
@@ -23,7 +23,7 @@ class TomcatMonitor:
         for line in lines:
             res_time = line.rsplit('-', 1)[1].strip()
             count += 1
-            total += int(res_time)
+            total += float(res_time)
         return (total / count) if count != 0 else 0, count
 
     def _read_and_parse_log(self):
