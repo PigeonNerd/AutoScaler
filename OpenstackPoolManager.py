@@ -40,26 +40,28 @@ class PoolManager:
                  ip = addr['addr']
         return ip
 
+    def _open_stack_create_vm_(self, srv_name, metadata):
+        srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id, key_name=self.ssh_keyname)
+        time.sleep(5)
+        self.cli.servers.set_meta(srv, metadata)
+        return srv
 
-    def _open_stack_create_vm_(self, srv_name):
+    def _open_stack_try_create_vm_(self, srv_name, metadata={}):
         """ create a new vm if it has not yet been created """
         for srv in self.cli.servers.list():
             if srv.name == srv_name:
                 if not self.lazy_start and srv.status == 'SHUTOFF':
                     srv.start()
-                self.cli.servers.set_meta(srv, {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
+                self.cli.servers.set_meta(srv, metadata)
                 return srv
-        srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id,
-                                      key_name=self.ssh_keyname,
-                                      metadata={'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
-        return srv
+        return self._open_stack_create_vm_(srv_name, metadata)
 
     def _open_stack_start_vm_(self, srv, srv_name):
         """ start a specified vm and rename it to a new name """
         if srv is None:
             if srv_name is None:
                 return None
-            srv = self._open_stack_create_vm_(srv_name)
+            srv = self._open_stack_try_create_vm_(srv_name)
         if srv_name is not None and srv_name != srv.name:
             srv.update(name=srv_name)
         if srv.status == 'SHUTOFF':
@@ -81,7 +83,8 @@ class PoolManager:
                 idx += 1
             srv_name = 'pool-vm-' + str(idx)
             self.pool_indices.append(idx)
-            self._open_stack_create_vm_(srv_name)
+            self._open_stack_try_create_vm_(srv_name,
+                                            {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
 
     def _vm_pool_pop_(self):
         for srv in self.cli.servers.list():
