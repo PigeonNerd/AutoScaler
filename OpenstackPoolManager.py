@@ -10,7 +10,7 @@ class PoolManager:
 
     def __init__(self):
         # vm pool config
-        self.pool_id = time.time()
+        self.pool_id = str(time.time())
         self.bulk_size = 3
         self.usage_index = 0
         self.pool_indices = []
