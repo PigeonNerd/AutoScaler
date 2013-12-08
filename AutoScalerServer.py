@@ -67,12 +67,18 @@ def de_allocate_vm():
     send(req)
 
 def check_high_load():
+    if len(stat_table) < statPeriodBound:
+        return False
+
     for stat in stat_table:
         if stat["res_time"] < template.targetTime:
             return False
     return True
 
 def check_low_load():
+    if len(stat_table) < statPeriodBound:
+        return False
+        
     for stat in stat_table:
         if stat["res_time"] > template.targetTime:
             return False
