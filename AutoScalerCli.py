@@ -4,7 +4,7 @@ import json
 import sys
 import re
 
-collector_addr = "http://localhost:10086/"
+collector_addr = "http://localhost:10088/"
 
 class Template:
 	 def __init__(self, maxVM, minVM, imagePath, targetTime):
@@ -12,7 +12,7 @@ class Template:
 	 	self.maxVM = int(maxVM)
 	 	self.minVM = int(minVM)
 	 	self.imagePath = imagePath
-	 	self.targetTime = int(targetTime)
+	 	self.targetTime = float(targetTime)
 
 	 def makeJson(self):
 	 	return json.dumps({"maxVM": self.maxVM, "minVM": self.minVM, 
