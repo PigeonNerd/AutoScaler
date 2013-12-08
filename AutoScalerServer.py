@@ -134,7 +134,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             # Convert json Unicode encoding to string
             if jsonMessage["count"] != 0:
                 stat = {"res_time": float(jsonMessage["res_time"])};
-                print "Receive %f, Target %f" % (stat, template.targetTime)
+                print "Receive %f, Target %f" % (stat["res_time"], template.targetTime)
                 print stat_table
                 self._insert(stat)
 
