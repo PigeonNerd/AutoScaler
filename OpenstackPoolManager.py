@@ -17,7 +17,7 @@ class PoolManager:
         # vm boot metadata
         self.flavor_id = '101'
         self.ssh_keyname = 'qingzhen'
-        self.image_id = 'to-be-decided'
+        self.image_id = '7e7ec42f-facb-4358-8af0-1751a863d496'
 
         # openstack admin credentials
         self.username = 'admin'
