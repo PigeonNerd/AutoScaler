@@ -44,17 +44,26 @@ class Graph:
 			ar.draw()
 
 	def drawVMVsTime(self):
-			tic = len(self.data) / 4
+			tic = self.data[-1][0] / 8
 			xaxis = axis.X(format="/a-60/hL%d", tic_interval = tic, label="Time")
-			yaxis = axis.Y(tic_interval = 2, label="Number of VMs")
+			yaxis = axis.Y(tic_interval = 1, label="Number of VMs")
 			ar = area.T(x_axis=xaxis, y_axis=yaxis, y_range=(0,None))
 			plot = line_plot.T(label="p2", data=self.data, ycol=1)
+			ar.add_plot(plot)
+			ar.draw()
+
+	def drawResVsTime(self):
+			tic = self.data[-1][0] / 8
+			xaxis = axis.X(format="/a-60/hL%d", tic_interval = tic, label="Time")
+			yaxis = axis.Y(tic_interval = 1, label="Response Time( Seconds )")
+			ar = area.T(x_axis=xaxis, y_axis=yaxis, y_range=(0,None))
+			plot = line_plot.T(label="p2", data=self.data, ycol=2)
 			ar.add_plot(plot)
 			ar.draw()
 
 if __name__ == '__main__':
 	sys.stdout = open('foo.pdf', 'w')
 	g = Graph('test.log', "log/siege.log")
-	g.drawVMVsTime()
+	g.drawResVsTime()
 
 
