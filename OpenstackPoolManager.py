@@ -43,7 +43,7 @@ class PoolManager:
 
     def _open_stack_create_vm_(self, srv_name, metadata={}):
         """ create a new vm if it has not yet been created """
-        for srv in self.cli.servers.list().reverse():
+        for srv in self.cli.servers.list():
             if srv.name == srv_name:
                 if not self.lazy_start and srv.status == 'SHUTOFF':
                     srv.start()
@@ -84,7 +84,7 @@ class PoolManager:
                                         metadata={'pool-id': self.pool_id, 'pool-state': 'idle', 'pool-usage': 'none'})
 
     def _vm_pool_pop_(self):
-        for srv in self.cli.servers.list().reverse():
+        for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'idle':
                 self.usage_index += 1
                 usage_name = 'web-server-' + str(self.usage_index)
@@ -103,7 +103,7 @@ class PoolManager:
 
     def _vm_pool_list_(self):
         srv_list = []
-        for srv in self.cli.servers.list().reverse():
+        for srv in self.cli.servers.list():
             if self._is_pool_member(srv):
                 srv_list.append({'name': str(srv.name), 'status': str(srv.status),
                                  'pool-state': str(srv.metadata['pool-state']), 'pool-usage': str(srv.metadata['pool-usage']),
