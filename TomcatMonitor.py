@@ -14,7 +14,7 @@ class TomcatMonitor:
         self.log_offset = 0
         self.srv_address = "http://load-balancer:10086"
         self.check_interval = 5
-        self.logfile_path = "/var/log/tomcat7/tomcat_access_log.*.txt"
+        self.logfile_path = "/opt/tomcat/logs/tomcat_access_log.*.txt"
 
     @staticmethod
     def _parse_log(lines):
