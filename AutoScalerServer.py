@@ -6,6 +6,7 @@ from AutoScalerCli import Template
 from subprocess import call
 import urllib2
 import threading
+from GraphGen import Graph
 
 """ 
     This class implements a CPU Performance Collector.
@@ -23,7 +24,7 @@ statPeriodBound = 2
 stat_file = "collect.log"
 
 #The server address responsible for nova commands
-nona_service_address = "http://localhost:10086/"
+nona_service_address = "http://localhost:10088/"
 
 #Threading timer for heartbeat check
 logging_timer = None
@@ -146,8 +147,8 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
 def run():
     #print('http server is starting...')
     #ip and port of servr
-    #by default http server port is 10088
-    server_address = ('0.0.0.0', 10088)
+    #by default http server port is 10086
+    server_address = ('0.0.0.0', 10086)
     #handle = CPUStatusHandler()
     httpd = HTTPServer(server_address, TomcatStatusHandler)
     #print('http server is running...')
