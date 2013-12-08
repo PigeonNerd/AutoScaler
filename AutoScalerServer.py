@@ -18,7 +18,7 @@ import threading
 #This is the shared data structure that stores VMs CPU usage
 stat_table = []
 #Number of stats per VM we need to maintain
-statPeriodBound = 2
+statPeriodBound = 5
 
 #Stat file name
 stat_file = "collect.log"
@@ -142,7 +142,11 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
 
     #insert into the stat table
     def _insert(self, stat):
-        stat_table.insert(0, stat)
+        if len(stat_table) < statPeriodBound:
+            stat_table.insert(0, stat)
+        else:
+            stat_table.insert(0, stat)
+            stat_table.pop()
 
 def run():
     #print('http server is starting...')
