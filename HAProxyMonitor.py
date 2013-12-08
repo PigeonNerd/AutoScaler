@@ -6,7 +6,7 @@ import time
 import glob
 
 
-class TomcatJkMonitor:
+class HAProxyMonitor:
 
     def __init__(self):
         self.log_offset = 0
@@ -21,9 +21,7 @@ class TomcatJkMonitor:
         for line in lines:
             if line.find('GET') >= 0:
                 if line.find('<NOSRV>') < 0:
-                    print line
                     line = line.split(']:', 1)[1].strip()
-                    print line
                     res_time = line.split(' ')[4].strip().split('/')[3].strip()
                     count += 1
                     total += float(res_time) / 1000
@@ -71,8 +69,8 @@ class TomcatJkMonitor:
 
 if __name__ == '__main__':
     try:
-        cli = TomcatJkMonitor()
-        print "Tomcat Jk Monitor is Running ... "
+        cli = HAProxyMonitor()
+        print "HA Proxy Monitor is Running ... "
         cli.run_forever()
     except KeyboardInterrupt:
-        print "Tomcat Jk Monitor is Shutting Down ... "
+        print "HA Proxy Monitor is Shutting Down ... "
