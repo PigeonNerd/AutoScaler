@@ -46,6 +46,7 @@ class PoolManager:
             if srv.name == srv_name:
                 if not self.lazy_start and srv.status == 'SHUTOFF':
                     srv.start()
+                self.cli.servers.set_meta(srv, metadata)
                 return srv
         srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id,
                                       key_name=self.ssh_keyname, metadata=metadata)
@@ -54,6 +55,8 @@ class PoolManager:
     def _open_stack_start_vm_(self, srv, srv_name):
         """ start a specified vm and rename it to a new name """
         if srv is None:
+            if srv_name is None:
+                return None
             srv = self._open_stack_create_vm_(srv_name)
         if srv_name is not None and srv_name != srv.name:
             srv.update(name=srv_name)
@@ -93,7 +96,7 @@ class PoolManager:
     def _vm_pool_list_(self):
         srv_list = []
         for srv in self.cli.servers.list():
-            if srv.metadata['pool-state'] is not None:
+            if 'pool-state' in srv.metadata:
                 srv_list.append({'name': str(srv.name), 'status': str(srv.status),
                                  'pool-state': str(srv.metadata['pool-state']), 'pool-usage': str(srv.metadata['pool-usage']),
                                  'ip': str(self._open_stack_get_ip_(srv))})
@@ -113,7 +116,6 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_POST(self):
         manager._vm_pool_bulk_()
-        srv_list = manager._vm_pool_list_()
         self.send_response(204)
         self.end_headers()
 
