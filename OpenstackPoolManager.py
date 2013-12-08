@@ -9,9 +9,9 @@ class PoolManager:
 
     def __init__(self):
         # vm pool config
-        self.pool_index = 0
         self.bulk_size = 3
         self.usage_index = 0
+        self.pool_indices = []
         self.lazy_start = False
 
         # vm boot metadata
@@ -61,11 +61,14 @@ class PoolManager:
         return srv
 
     def _vm_pool_bulk_(self):
-        for index in range(1, self.bulk_size + 1):
-            srv_name = 'pool-vm-' + str(self.pool_index + index)
+        for _dummy in range(1, self.bulk_size + 1):
+            idx = 1
+            while idx in self.pool_indices:
+                idx += 1
+            srv_name = 'pool-vm-' + str(idx)
+            self.pool_indices.append(idx)
             srv = self._open_stack_create_vm_(srv_name)
             self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
-        self.pool_index += self.bulk_size
 
     def _vm_pool_pop_(self):
         for srv in self.cli.servers.list():
