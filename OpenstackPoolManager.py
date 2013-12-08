@@ -105,14 +105,24 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dump(srv_list))
 
-    def do_PUT(self):
+    def do_POST(self):
         manager._vm_pool_bulk_()
+        self.send_response(201)
+        self.end_headers()
+
+    def do_PUT(self):
+        manager._vm_pool_pop_()
+        self.send_response(201)
+        self.end_headers()
+
+    def do_DELETE(self):
+        manager._vm_pool_push_()
         self.send_response(201)
         self.end_headers()
 
 if __name__ == '__main__':
     try:
-        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10087), OpenstackAgent)
+        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10086), OpenstackAgent)
         print 'Openstack Agent is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
