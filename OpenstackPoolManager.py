@@ -47,11 +47,11 @@ class PoolManager:
             if srv.name == srv_name:
                 if not self.lazy_start and srv.status == 'SHUTOFF':
                     srv.start()
-                self.cli.servers.set_meta(srv, {'pool-id': self.pool_id, 'pool-state': 'idle', 'pool-usage': 'none'})
+                self.cli.servers.set_meta(srv, {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
                 return srv
         srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id,
                                       key_name=self.ssh_keyname,
-                                      metadata={'pool-id': self.pool_id, 'pool-state': 'idle', 'pool-usage': 'none'})
+                                      metadata={'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
         return srv
 
     def _open_stack_start_vm_(self, srv, srv_name):
