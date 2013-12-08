@@ -10,6 +10,7 @@ class PoolManager:
 
     def __init__(self):
         # vm pool config
+        self.pool_id = str(time.time())
         self.bulk_size = 3
         self.usage_index = 0
         self.pool_indices = []
@@ -39,8 +40,15 @@ class PoolManager:
                  ip = addr['addr']
         return ip
 
+    def _open_stack_create_vm_(self, srv_name, metadata):
+        srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id, key_name=self.ssh_keyname)
+        while srv.status != 'ACTIVE':
+            time.sleep(5)
+            srv = self.cli.servers.get(srv.id)
+        self.cli.servers.set_meta(srv, metadata)
+        return srv
 
-    def _open_stack_create_vm_(self, srv_name, metadata={}):
+    def _open_stack_try_create_vm_(self, srv_name, metadata={}):
         """ create a new vm if it has not yet been created """
         for srv in self.cli.servers.list():
             if srv.name == srv_name:
@@ -48,60 +56,64 @@ class PoolManager:
                     srv.start()
                 self.cli.servers.set_meta(srv, metadata)
                 return srv
-        srv = self.cli.servers.create(srv_name, self.image_id, self.flavor_id,
-                                      key_name=self.ssh_keyname, metadata=metadata)
-        return srv
+        return self._open_stack_create_vm_(srv_name, metadata)
 
     def _open_stack_start_vm_(self, srv, srv_name):
         """ start a specified vm and rename it to a new name """
         if srv is None:
             if srv_name is None:
                 return None
-            srv = self._open_stack_create_vm_(srv_name)
+            srv = self._open_stack_try_create_vm_(srv_name)
         if srv_name is not None and srv_name != srv.name:
             srv.update(name=srv_name)
         if srv.status == 'SHUTOFF':
             srv.start()
         return srv
 
+    def _is_pool_member(self, srv):
+        if 'pool-id' in srv.metadata:
+            if srv.metadata['pool-id'] == self.pool_id:
+                return True
+        return False
+
     def _vm_pool_bulk_(self, bulk_size=0):
         if bulk_size == 0:
             bulk_size = self.bulk_size
-        for _dummy in range(1, bulk_size + 1):
+        for _ in range(1, bulk_size + 1):
             idx = 1
             while idx in self.pool_indices:
                 idx += 1
             srv_name = 'pool-vm-' + str(idx)
             self.pool_indices.append(idx)
-            srv = self._open_stack_create_vm_(srv_name, {'pool-state': 'idle', 'pool-usage': 'none'})
+            self._open_stack_try_create_vm_(srv_name,
+                                            {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
 
     def _vm_pool_pop_(self):
         for srv in self.cli.servers.list():
-            if 'pool-state' in srv.metadata and srv.metadata['pool-state'] == 'idle':
+            if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'idle':
                 self.usage_index += 1
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 return srv
-        self._vm_pool_bulk_(2)
+        self._vm_pool_bulk_(bulk_size=2)
         return self._vm_pool_pop_()
 
     def _vm_pool_push_(self):
         for srv in self.cli.servers.list():
-            if 'pool-state' in srv.metadata and srv.metadata['pool-state'] == 'active':
+            if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
                 return srv
-        return None
+        return None  # nothing to push from pool
 
     def _vm_pool_list_(self):
         srv_list = []
         for srv in self.cli.servers.list():
-            if 'pool-state' in srv.metadata:
+            if self._is_pool_member(srv):
                 srv_list.append({'name': str(srv.name), 'status': str(srv.status),
                                  'pool-state': str(srv.metadata['pool-state']), 'pool-usage': str(srv.metadata['pool-usage']),
                                  'ip': str(self._open_stack_get_ip_(srv))})
         return srv_list
-
 
 manager = PoolManager()
 
