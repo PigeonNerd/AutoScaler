@@ -78,7 +78,7 @@ def check_high_load():
 def check_low_load():
     if len(stat_table) < statPeriodBound:
         return False
-        
+
     for stat in stat_table:
         if stat["res_time"] > template.targetTime:
             return False
@@ -148,10 +148,15 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                     numVMs += 1
                     allocate_vm()
                     print "High load detect ! spawn new VM"
+
+                elif numVMs == template.maxVM and check_high_load():
+                    print "High load detect, but already reach max VMs"
                 elif  numVMs >  template.minVM and check_low_load():
                     numVMs -= 1
                     de_allocate_vm()
                     print "Low load detect ! de-alloc one VM"
+                elif numVMs == template.minVM and check_low_load():
+                    print "Low load detect, but already reach min VMs"
 
     #insert into the stat table
     def _insert(self, stat):
