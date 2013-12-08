@@ -81,7 +81,7 @@ def logging():
     for stat in stat_table:
         res_time += stat["res_time"]
     res_time = res_time / 1.0 / numVMs
-    stat = [{"time": tick,"numVMs" : numVMs, "res_time" : res_time}]
+    stat = {"time": tick,"numVMs" : numVMs, "res_time" : res_time}
     json.dump(stat, f)
     f.write("\n")
     f.close
