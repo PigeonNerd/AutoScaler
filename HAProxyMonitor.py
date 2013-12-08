@@ -19,7 +19,7 @@ class TomcatJkMonitor:
         total = 0
         count = 0
         for line in lines:
-            if line.fine('GET') >= 0:
+            if line.find('GET') >= 0:
                 if line.find('<NOSRV>') < 0:
                     res_time = line.split(':')[1].split(' ')[4].split('/')[3]
                     count += 1
