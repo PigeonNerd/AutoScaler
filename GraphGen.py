@@ -2,7 +2,7 @@ from pychart import *
 import json
 import re
 theme.get_options()
-
+import sys
 
 class Graph:
 	def __init__(self, logfile, siegelog):
@@ -32,23 +32,29 @@ class Graph:
 			self.data2.append( ( temp[i][2] - 2 * elapse /1.0/3, float(temp[i][7]) ) )
 			self.data2.append( ( temp[i][2] - elapse / 1.0 / 3, float(temp[i][7]) ) )
 			self.data2.append( ( temp[i][2], float(temp[i][7]) ) )
+			f.close()
 			
-			
-
-	def draw(self):
-			xaxis = axis.X(format="/a-60/hL%d", tic_interval = 180, label="Value")
-			yaxis = axis.Y(tic_interval = 2, label="Time")
+	def drawRequestVsTime(self):
+			tic = self.data2[2][0]
+			xaxis = axis.X(format="/a-60/hL%d", tic_interval = tic, label="Time")
+			yaxis = axis.Y(tic_interval = 0.5, label="Number of concurrent requests")
 			ar = area.T(x_axis=xaxis, y_axis=yaxis, y_range=(0,None))
-			plot = line_plot.T(label="Number of VMs vs. Time", data=self.data, ycol=1)
+			plot = line_plot.T(label="p1", data=self.data2, ycol=1)
+			ar.add_plot(plot)
+			ar.draw()
 
-			plot2 = line_plot.T(label="Number of concurent requests vs. Time", data=self.data2, ycol=1)
-
-			ar.add_plot(plot2)
+	def drawVMVsTime(self):
+			tic = len(self.data) / 4
+			xaxis = axis.X(format="/a-60/hL%d", tic_interval = tic, label="Time")
+			yaxis = axis.Y(tic_interval = 2, label="Number of VMs")
+			ar = area.T(x_axis=xaxis, y_axis=yaxis, y_range=(0,None))
+			plot = line_plot.T(label="p2", data=self.data, ycol=1)
+			ar.add_plot(plot)
 			ar.draw()
 
 if __name__ == '__main__':
-
-	 g = Graph('test.log', "log/siege.log")
-	 
+	sys.stdout = open('foo.pdf', 'w')
+	g = Graph('test.log', "log/siege.log")
+	g.drawVMVsTime()
 
 

@@ -127,7 +127,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             # Convert json Unicode encoding to string
             if jsonMessage["count"] != 0:
                 vm = str(jsonMessage["vm"])
-                stat = {"res_time": int(jsonMessage["res_time"])}; 
+                stat = {"res_time": float(jsonMessage["res_time"])}; 
                 self.insert(stat)
 
                 if  numVMs <  template.maxVM and check_high_load:
