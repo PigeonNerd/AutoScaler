@@ -77,7 +77,7 @@ class PoolManager:
 
     def _vm_pool_pop_(self):
         for srv in self.cli.servers.list():
-            if srv.metadata['pool-state'] == 'idle':
+            if 'pool-state' in srv.metadata and srv.metadata['pool-state'] == 'idle':
                 self.usage_index += 1
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
@@ -88,7 +88,7 @@ class PoolManager:
 
     def _vm_pool_push_(self):
         for srv in self.cli.servers.list():
-            if srv.metadata['pool-state'] == 'active':
+            if 'pool-state' in srv.metadata and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
                 return srv
         return None
