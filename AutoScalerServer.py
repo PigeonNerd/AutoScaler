@@ -77,6 +77,7 @@ def check_low_load(vm):
     return True
 
 def logging():
+    print "start to log !"
     f = open(stat_file, "a")
     res_time = 0
     for stat in stat_table:
