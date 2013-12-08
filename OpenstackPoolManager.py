@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import time
 import BaseHTTPServer
 from novaclient.v1_1 import client
 
@@ -46,9 +47,10 @@ class PoolManager:
                 if not self.lazy_start and srv.status == 'SHUTOFF':
                     srv.start()
                 return srv
-        return self.cli.servers.create(srv_name,
-                                       self.image_id, self.flavor_id, key_name=self.ssh_keyname)
-
+        srv = self.cli.servers.create(srv_name,
+                                      self.image_id, self.flavor_id, key_name=self.ssh_keyname)
+        time.sleep(5)
+        return srv
 
     def _open_stack_start_vm_(self, srv, srv_name):
         """ start a specified vm and rename it to a new name """
@@ -60,8 +62,10 @@ class PoolManager:
             srv.start()
         return srv
 
-    def _vm_pool_bulk_(self):
-        for _dummy in range(1, self.bulk_size + 1):
+    def _vm_pool_bulk_(self, bulk_size=0):
+        if bulk_size == 0:
+            bulk_size = self.bulk_size
+        for _dummy in range(1, bulk_size + 1):
             idx = 1
             while idx in self.pool_indices:
                 idx += 1
@@ -78,7 +82,7 @@ class PoolManager:
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 return srv
-        self._vm_pool_bulk_()
+        self._vm_pool_bulk_(2)
         return self._vm_pool_pop_()
 
     def _vm_pool_push_(self):
