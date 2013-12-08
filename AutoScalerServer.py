@@ -133,9 +133,11 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                 if  numVMs <  template.maxVM and check_high_load:
                     numVMs += 1
                     allocate_vm()
+                    print "High load detect ! spawn new VM"
                 elif  numVMs >  template.minVM and check_low_load:
                     numVMs -= 1
                     de_allocate_vm()
+                    print "Low load detect ! de-alloc one VM"
 
     #insert into the stat table
     def _insert(self, stat):
