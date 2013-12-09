@@ -62,7 +62,7 @@ class Graph:
 			ar.draw()
 
 if __name__ == '__main__':
-	g = Graph('log/load_2/collect.log', "log/load_2/siege.log")
+	g = Graph('log/load_1/collect.log', "log/load_1/siege.log")
 
 	if sys.argv[1] == 'req':
 		sys.stdout = open('RequestVsTime.pdf', 'w')
