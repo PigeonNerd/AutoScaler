@@ -113,15 +113,18 @@ def logging():
 class TomcatStatusHandler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
+        print "LOCKED, a VM get killed"
         self.send_response(201)
         self.end_headers()
         global isDead
         isDead += 1
     def do_DELETE(self):
+        print "UNLOCKED, a VM get recovered"
         self.send_response(201)
         self.end_headers()
         global isDead
         isDead -= 1 
+        
     #handle POST command
     def do_POST(self):
         self.send_response(201)
