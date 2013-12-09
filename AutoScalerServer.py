@@ -147,7 +147,8 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
 
             if jsonMessage["count"] != 0:
                 stat = {"res_time": float(jsonMessage["res_time"])};
-                print "Receive %f, Target %f" % (stat["res_time"], template.targetTime)
+                print "Receive %f, Target %f (high: %f, low: %f)" % (stat["res_time"], 
+                    template.targetTime, template.targetTime * highRange, template.targetTime * lowRange)
                 print stat_table
                 self._insert(stat)
 
