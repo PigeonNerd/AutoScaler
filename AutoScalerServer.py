@@ -139,6 +139,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         global tick
         global initialized
         global isDead
+        global stat_table
 
         # This is to instantiate VMs
         if self.path.endswith('instantiate'):
