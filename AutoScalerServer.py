@@ -38,6 +38,8 @@ tick = 0
 #High load, low load range
 highRange = 1.2
 
+#is instantiate
+initialized = False
 
 """
     we have to maintain one template
@@ -118,6 +120,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         global template
         global logging_timer
         global tick
+        global initialized
 
         # This is to instantiate VMs
         if self.path.endswith('instantiate'):
@@ -127,43 +130,46 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             #global template = temp
             logging()
             template.printTemplate()
+            initialized = True
             while numVMs < template.minVM:
                 numVMs += 1
                 allocate_vm()
            
         elif self.path.endswith('destroy'):
             #finished = True
+            initialized = False
             logging_timer.cancel()
             while numVMs > 0:
                 numVMs -= 1
                 de_allocate_vm()
         else :
-            # Convert json Unicode encoding to string
-            if jsonMessage["count"] == 0 and numVMs > template.minVM:
-                while numVMs > template.minVM:
-                    numVMs -= 1;
-                    de_allocate_vm()
+            if initialized:
+                # Convert json Unicode encoding to string
+                if jsonMessage["count"] == 0 and numVMs > template.minVM:
+                    while numVMs > template.minVM:
+                        numVMs -= 1;
+                        de_allocate_vm()
 
-            if jsonMessage["count"] != 0:
-                stat = {"res_time": float(jsonMessage["res_time"])};
-                print "Receive %f, Target %f (high: %f, low: %f)" % (stat["res_time"], 
-                    template.targetTime, template.targetTime * highRange, 2.0)
-                print stat_table
-                self._insert(stat)
+                if jsonMessage["count"] != 0:
+                    stat = {"res_time": float(jsonMessage["res_time"])};
+                    print "Receive %f, Target %f (high: %f, low: %f)" % (stat["res_time"], 
+                        template.targetTime, template.targetTime * highRange, 2.0)
+                    print stat_table
+                    self._insert(stat)
 
-                if  numVMs <  template.maxVM and check_high_load():
-                    numVMs += 1
-                    allocate_vm()
-                    print "High load detect ! spawn new VM"
+                    if  numVMs <  template.maxVM and check_high_load():
+                        numVMs += 1
+                        allocate_vm()
+                        print "High load detect ! spawn new VM"
 
-                elif numVMs == template.maxVM and check_high_load():
-                    print "High load detect, but already reach max VMs"
-                elif  numVMs >  template.minVM and check_low_load():
-                    numVMs -= 1
-                    de_allocate_vm()
-                    print "Low load detect ! de-alloc one VM"
-                elif numVMs == template.minVM and check_low_load():
-                    print "Low load detect, but already reach min VMs"
+                    elif numVMs == template.maxVM and check_high_load():
+                        print "High load detect, but already reach max VMs"
+                    elif  numVMs >  template.minVM and check_low_load():
+                        numVMs -= 1
+                        de_allocate_vm()
+                        print "Low load detect ! de-alloc one VM"
+                    elif numVMs == template.minVM and check_low_load():
+                        print "Low load detect, but already reach min VMs"
 
     #insert into the stat table
     def _insert(self, stat):
