@@ -196,49 +196,45 @@ manager = PoolManager()
 class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
-        srv_list = manager._vm_pool_list_()
         self.send_response(200)
         self.end_headers()
-        self.wfile.write('SRV-LIST:\n')
+        srv_list = manager._vm_pool_list_()
+        print 'SRV-LIST:\n'
         for srv in srv_list:
             if srv['pool-state'] == 'active':
-                self.wfile.write(srv['pool-usage'] + ' - ' + srv['status'] + '\n')
-        self.wfile.write('END LIST\n')
-        self.wfile.close()
+                print srv['pool-usage'] + ' - ' + srv['status'] + '\n'
+        print 'END LIST\n'
 
     def do_POST(self):
+        self.send_response(201)
+        self.end_headers()
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
         ip = str(json.loads(post_body)['vm'])
         manager._vm_pool_hb_(ip)
-        self.send_response(201)
-        self.end_headers()
 
     def do_PUT(self):
+        self.send_response(204)
+        self.end_headers()
         srv = manager._vm_pool_pop_()
         manager._lb_update_backend_srvs_()
-        self.send_response(201)
-        self.end_headers()
-        self.wfile.write('ADD: ' + srv.name + '\n')
-        self.wfile.close()
+        print 'ADD: ' + srv.name + '\n'
 
     def do_DELETE(self):
+        self.send_response(204)
+        self.end_headers()
         srv = manager._vm_pool_push_()
         manager._lb_update_backend_srvs_()
-        self.send_response(202)
-        self.end_headers()
-        self.wfile.write('DEL: ' + srv.name + '\n')
-        self.wfile.close()
+        print 'DEL: ' + srv.name + '\n'
 
     def do_HEAD(self):
-        (failed, recovered) = manager._vm_pool_check()
-        self.send_response(200)
+        self.send_response(204)
         self.end_headers()
+        (failed, recovered) = manager._vm_pool_check()
         if len(failed) > 0:
             manager._lb_update_backend_srvs_()
-        self.wfile.write('FAILED: ' + str(failed) + '\n')
-        self.wfile.write('RECOVERED: ' + str(recovered) + '\n')
-        self.wfile.close()
+        print 'FAILED: ' + str(failed) + '\n'
+        print 'RECOVERED: ' + str(recovered) + '\n'
 
 if __name__ == '__main__':
     try:
