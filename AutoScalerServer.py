@@ -37,7 +37,7 @@ tick = 0
 
 #High load, low load range
 highRange = 1.2
-lowRange  = 0.8
+
 
 """
     we have to maintain one template
@@ -82,7 +82,7 @@ def check_low_load():
         return False
 
     for stat in stat_table:
-        if stat["res_time"] > template.targetTime * lowRange:
+        if stat["res_time"] > 2.0:
             return False
     return True
 
@@ -148,7 +148,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             if jsonMessage["count"] != 0:
                 stat = {"res_time": float(jsonMessage["res_time"])};
                 print "Receive %f, Target %f (high: %f, low: %f)" % (stat["res_time"], 
-                    template.targetTime, template.targetTime * highRange, template.targetTime * lowRange)
+                    template.targetTime, template.targetTime * highRange, 2.0)
                 print stat_table
                 self._insert(stat)
 
