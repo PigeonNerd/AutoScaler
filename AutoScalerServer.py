@@ -24,7 +24,7 @@ statPeriodBound = 3
 stat_file = "collect.log"
 
 #The server address responsible for nova commands
-nona_service_address = "http://localhost:10085/"
+nona_service_address = "http://localhost:10086/"
 
 #Threading timer for heartbeat check
 logging_timer = None
