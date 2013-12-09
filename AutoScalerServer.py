@@ -113,9 +113,13 @@ def logging():
 class TomcatStatusHandler(BaseHTTPRequestHandler):
 
     def do_PUT(self):
+        self.send_response(201)
+        self.end_headers()
         global isDead
         isDead += 1
     def do_DELETE(self):
+        self.send_response(201)
+        self.end_headers()
         global isDead
         isDead -= 1 
     #handle POST command
