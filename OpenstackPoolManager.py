@@ -103,14 +103,14 @@ class PoolManager:
             self._open_stack_try_create_vm_(srv_name,
                                             {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
 
-    def _vm_pool_pop_(self):
+    def _vm_pool_pop_(self, old_ip=None):
         for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'idle':
                 self.usage_index += 1
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
-                self.heartbeats[str(self._open_stack_get_ip_(srv))] = float(time.time()) + 300
+                self.heartbeats[str(self._open_stack_get_ip_(srv))] = (float(-300), old_ip)
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
@@ -135,6 +135,23 @@ class PoolManager:
     def _vm_pool_hb_(self, ip):
         if ip in self.heartbeats:
             self.heartbeats[ip] = float(time.time())
+
+    def _vm_pool_check(self):
+        now = float(time.time())
+        to_be_removed = []
+        for ip in self.heartbeats:
+            (hb, old_ip) = self.heartbeats[ip]
+            if hb < 0:
+                self.heartbeats[ip] = (hb + 5, old_ip)
+            else:
+                if hb + 10 < now:
+                    to_be_removed.append(ip)
+                else:
+                    if old_ip is not None:
+                        self.heartbeats[ip] = (hb, None)
+        for ip in to_be_removed:
+            del self.heartbeats[ip] # TODO: remove vm pool's metadata from openstack
+            self._vm_pool_pop_(ip)
 
 manager = PoolManager()
 
