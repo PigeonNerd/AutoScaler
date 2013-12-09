@@ -10,7 +10,7 @@ class Graph:
 		f = open(logfile, "r")
 		for line in f.readlines():
 			jsonMessage = json.loads(line.strip())
-			self.data.append( (int(jsonMessage["time"]), int(jsonMessage["numVMs"]), int(jsonMessage["res_time"])) )
+			self.data.append( (int(jsonMessage["time"]), int(jsonMessage["numVMs"]), float(jsonMessage["res_time"])) )
 		f.close()
 		
 		self.data2 = []
@@ -62,8 +62,18 @@ class Graph:
 			ar.draw()
 
 if __name__ == '__main__':
-	sys.stdout = open('foo.pdf', 'w')
-	g = Graph('test.log', "log/siege.log")
-	g.drawResVsTime()
+	g = Graph('log/load_1/collect.log', "log/load_1/siege.log")
 
+	if sys.argv[1] == 'req':
+		sys.stdout = open('RequestVsTime.pdf', 'w')
+		g.drawRequestVsTime()
+	elif sys.argv[1] == 'res':
+		sys.stdout = open('ResVsTime.pdf', 'w')
+		g.drawResVsTime()
+	elif sys.argv[1] == "vm":
+		sys.stdout = open('VmVsTime.pdf', 'w')
+		g.drawVMVsTime()
+	else:
+		print "Wrong command, should be one of req, res, vm"
+	
 
