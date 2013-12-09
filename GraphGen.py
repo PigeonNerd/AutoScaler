@@ -10,7 +10,7 @@ class Graph:
 		f = open(logfile, "r")
 		for line in f.readlines():
 			jsonMessage = json.loads(line.strip())
-			self.data.append( (int(jsonMessage["time"]), int(jsonMessage["numVMs"]), int(jsonMessage["res_time"])) )
+			self.data.append( (int(jsonMessage["time"]), int(jsonMessage["numVMs"]), float(jsonMessage["res_time"])) )
 		f.close()
 		
 		self.data2 = []
@@ -62,7 +62,7 @@ class Graph:
 			ar.draw()
 
 if __name__ == '__main__':
-	g = Graph('log/load_1/collect.log', "log/load_1/siege.log")
+	g = Graph('log/load_2/collect.log', "log/load_2/siege.log")
 
 	if sys.argv[1] == 'req':
 		sys.stdout = open('RequestVsTime.pdf', 'w')
