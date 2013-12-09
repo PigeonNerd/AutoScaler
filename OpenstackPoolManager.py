@@ -137,7 +137,8 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write('SRV-LIST:\n')
         for srv in srv_list:
-            self.wfile.write(srv['name'] + ' - ' + srv['status'] + '\n')
+            if srv['pool-state'] == 'active':
+                self.wfile.write(srv['pool-usage'] + ' - ' + srv['status'] + '\n')
         self.wfile.write('TOTAL= ' + str(len(srv_list)) + '\n')
         self.wfile.close()
 
