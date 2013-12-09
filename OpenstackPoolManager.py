@@ -170,7 +170,7 @@ if __name__ == '__main__':
     try:
         manager._vm_pool_bulk_(bulk_size=2)
         print 'Initializing Openstack Pool Manager ... '
-        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
+        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10086), OpenstackAgent)
         print 'Openstack Pool Manager is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
