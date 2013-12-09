@@ -112,7 +112,7 @@ class PoolManager:
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 ip = str(self._open_stack_get_ip_(srv))
-                self.heartbeats[ip] = (float(-300), old_ip)
+                self.heartbeats[ip] = (float(-500), old_ip)
                 print 'POP: ' + str(self.heartbeats[ip])
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
@@ -210,8 +210,10 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         (failed, recovered) = manager._vm_pool_check()
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(str(failed) + '\n')
-        self.wfile.write(str(recovered) + '\n')
+        if len(failed) > 0:
+            manager._lb_update_backend_srvs_()
+        self.wfile.write('FAILED: ' + str(failed) + '\n')
+        self.wfile.write('RECOVERED: ' + str(recovered) + '\n')
         self.wfile.close()
 
 if __name__ == '__main__':
