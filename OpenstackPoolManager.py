@@ -3,6 +3,7 @@
 import os
 import json
 import time
+import urllib2
 import BaseHTTPServer
 from novaclient.v1_1 import client
 
@@ -32,6 +33,7 @@ class PoolManager:
 
         # vm heartbeats
         self.heartbeats = {}
+        self.autoscaler_addr = 'http://load-balancer:10088'
 
         # python nova client
         self.cli = client.Client(self.username, self.password,
@@ -113,7 +115,7 @@ class PoolManager:
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 ip = str(self._open_stack_get_ip_(srv))
                 self.heartbeats[ip] = (float(-500), old_ip)
-                print 'POP: ' + str(self.heartbeats[ip])
+                print 'POP: ' + ip + ' - ' + str(self.heartbeats[ip])
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_(old_ip=old_ip)
@@ -141,7 +143,7 @@ class PoolManager:
         if ip in self.heartbeats:
             (_dummy, old_ip) = self.heartbeats[ip]
             self.heartbeats[ip] = (float(time.time()), old_ip)
-            print 'HB: ' + str(self.heartbeats[ip])
+            print 'HB: ' + ip + ' - ' + str(self.heartbeats[ip])
 
     def _vm_pool_check(self):
         now = float(time.time())
@@ -158,14 +160,36 @@ class PoolManager:
                     if old_ip is not None:
                         newly_recovered.append(ip)
                         self.heartbeats[ip] = (hb, None)
+                        self._unlock_()
         for ip in to_be_removed:
             del self.heartbeats[ip]
             for srv in self.cli.servers.list():
                 if self._is_pool_member(srv) and str(self._open_stack_get_ip_(srv)) == ip:
                     self.cli.servers.delete(srv)
             self._vm_pool_pop_(old_ip=ip)
+            self._lock_()
         print 'CHK: ' + str(self.heartbeats)
         return to_be_removed, newly_recovered
+
+    def _lock_(self):
+        req = urllib2.Request(self.autoscaler_addr)
+        req.get_method = lambda: 'PUT'
+        try:
+            urllib2.urlopen(req)
+        except urllib2.URLError as ue:
+            print ue.reason
+        except urllib2.HTTPError as he:
+            print "%s - %s" % (he.code, he.reason)
+
+    def _unlock_(self):
+        req = urllib2.Request(self.autoscaler_addr)
+        req.get_method = lambda: 'DELETE'
+        try:
+            urllib2.urlopen(req)
+        except urllib2.URLError as ue:
+            print ue.reason
+        except urllib2.HTTPError as he:
+            print "%s - %s" % (he.code, he.reason)
 
 manager = PoolManager()
 
