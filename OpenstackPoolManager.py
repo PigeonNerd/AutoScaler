@@ -96,7 +96,7 @@ class PoolManager:
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 return srv
-        self._vm_pool_bulk_(bulk_size=2)
+        self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
 
     def _vm_pool_push_(self):
@@ -127,8 +127,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.close()
 
     def do_POST(self):
-        manager._vm_pool_bulk_()
-        self.send_response(204)
+        self.send_response(201)
         self.end_headers()
 
     def do_PUT(self):
@@ -147,6 +146,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
+        manager._vm_pool_bulk_(bulk_size=2)
         server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
         print 'Openstack Agent is Running ... '
         server.serve_forever()
