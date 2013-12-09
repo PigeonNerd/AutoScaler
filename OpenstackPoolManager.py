@@ -30,6 +30,9 @@ class PoolManager:
         self.tenant_name = 'admin'
         self.service_url = 'http://openstack-host:5000/v2.0/'
 
+        # vm heartbeats
+        self.heartbeats = {}
+
         # python nova client
         self.cli = client.Client(self.username, self.password,
                                  self.tenant_name, self.service_url, service_type="compute")
@@ -107,6 +110,7 @@ class PoolManager:
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
+                self.heartbeats[str(self._open_stack_get_ip_(srv))] = float(time.time()) + 300
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
@@ -115,6 +119,7 @@ class PoolManager:
         for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
+                del self.heartbeats[str(self._open_stack_get_ip_(srv))]
                 return srv
         return None  # nothing to push from pool
 
@@ -126,6 +131,10 @@ class PoolManager:
                                  'pool-state': str(srv.metadata['pool-state']), 'pool-usage': str(srv.metadata['pool-usage']),
                                  'ip': str(self._open_stack_get_ip_(srv))})
         return srv_list
+
+    def _vm_pool_hb_(self, ip):
+        if ip in self.heartbeats:
+            self.heartbeats[ip] = float(time.time())
 
 manager = PoolManager()
 
@@ -139,16 +148,15 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         for srv in srv_list:
             if srv['pool-state'] == 'active':
                 self.wfile.write(srv['pool-usage'] + ' - ' + srv['status'] + '\n')
-        self.wfile.write('TOTAL= ' + str(len(srv_list)) + '\n')
+        self.wfile.write('END LIST\n')
         self.wfile.close()
 
     def do_POST(self):
-        self.send_response(201)
-        self.end_headers()
-        content_type = self.headers.getheader('Content-Type')
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
-        print json.loads(post_body)['vm']
+        manager._vm_pool_hb_(str(json.loads(post_body)['vm']))
+        self.send_response(201)
+        self.end_headers()
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
