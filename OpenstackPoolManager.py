@@ -199,12 +199,11 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         srv_list = manager._vm_pool_list_()
         self.send_response(200)
         self.end_headers()
-        self.wfile.write('SRV-LIST:\n')
+        print 'SRV-LIST:\n'
         for srv in srv_list:
             if srv['pool-state'] == 'active':
-                self.wfile.write(srv['pool-usage'] + ' - ' + srv['status'] + '\n')
-        self.wfile.write('END LIST\n')
-        self.wfile.close()
+                print srv['pool-usage'] + ' - ' + srv['status'] + '\n'
+        print 'END LIST\n'
 
     def do_POST(self):
         content_len = self.headers.getheader('Content-Length')
@@ -219,16 +218,14 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         manager._lb_update_backend_srvs_()
         self.send_response(201)
         self.end_headers()
-        self.wfile.write('ADD: ' + srv.name + '\n')
-        self.wfile.close()
+        print 'ADD: ' + srv.name + '\n'
 
     def do_DELETE(self):
         srv = manager._vm_pool_push_()
         manager._lb_update_backend_srvs_()
         self.send_response(202)
         self.end_headers()
-        self.wfile.write('DEL: ' + srv.name + '\n')
-        self.wfile.close()
+        print 'DEL: ' + srv.name + '\n'
 
     def do_HEAD(self):
         (failed, recovered) = manager._vm_pool_check()
@@ -236,9 +233,8 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         if len(failed) > 0:
             manager._lb_update_backend_srvs_()
-        self.wfile.write('FAILED: ' + str(failed) + '\n')
-        self.wfile.write('RECOVERED: ' + str(recovered) + '\n')
-        self.wfile.close()
+        print 'FAILED: ' + str(failed) + '\n'
+        print 'RECOVERED: ' + str(recovered) + '\n'
 
 if __name__ == '__main__':
     try:
