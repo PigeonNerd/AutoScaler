@@ -99,7 +99,7 @@ def logging():
     json.dump(stat, f)
     f.write("\n")
     f.close
-    tick += 2
+    tick += 5
     logging_timer = threading.Timer(5, logging)
     logging_timer.start()
 
