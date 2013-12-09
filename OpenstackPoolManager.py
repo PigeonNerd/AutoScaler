@@ -136,7 +136,8 @@ class PoolManager:
 
     def _vm_pool_hb_(self, ip):
         if ip in self.heartbeats:
-            self.heartbeats[ip] = float(time.time())
+            (_dummy, old_ip) = self.heartbeats[ip]
+            self.heartbeats[ip] = (float(time.time()), old_ip)
 
     def _vm_pool_check(self):
         now = float(time.time())
