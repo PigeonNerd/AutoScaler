@@ -18,7 +18,7 @@ import threading
 #This is the shared data structure that stores VMs CPU usage
 stat_table = []
 #Number of stats per VM we need to maintain
-statPeriodBound = 5
+statPeriodBound = 3
 
 #Stat file name
 stat_file = "collect.log"
