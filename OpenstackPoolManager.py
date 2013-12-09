@@ -111,6 +111,7 @@ class PoolManager:
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 self.heartbeats[str(self._open_stack_get_ip_(srv))] = (float(-300), old_ip)
+                print self.heartbeats
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
@@ -120,6 +121,7 @@ class PoolManager:
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
                 del self.heartbeats[str(self._open_stack_get_ip_(srv))]
+                print self.heartbeats
                 return srv
         return None  # nothing to push from pool
 
@@ -154,6 +156,7 @@ class PoolManager:
         for ip in to_be_removed:
             del self.heartbeats[ip] # TODO: remove vm pool's metadata from openstack
             self._vm_pool_pop_(ip)
+        print self.heartbeats
         return to_be_removed, newly_recovered
 
 manager = PoolManager()
