@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import json
 import time
 import BaseHTTPServer
@@ -15,6 +16,8 @@ class PoolManager:
         self.usage_index = 0
         self.pool_indices = []
         self.lazy_start = False
+        self.lb_reload_script = './haproxy/haproxy-reload.sh'
+        self.lb_servers_list = './haproxy/haproxy-servers.cfg'
 
         # vm boot metadata
         self.flavor_id = '101'
@@ -69,6 +72,15 @@ class PoolManager:
         if srv.status == 'SHUTOFF':
             srv.start()
         return srv
+
+    def _lb_update_backend_srvs_(self):
+        with open(self.lb_servers_list, 'w') as f:
+            for srv in self.cli.servers.list:
+                if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
+                    f.write('        ' + 'server' + ' ' + str(srv.metadata['pool-usage']) + ' ' +
+                            str(self._open_stack_get_ip_(srv)) + ':8080' + ' ' + 'check inter 50000\n')
+            f.flush()
+        os.system(self.lb_reload_script)
 
     def _is_pool_member(self, srv):
         if 'pool-id' in srv.metadata:
@@ -132,6 +144,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
+        manager._lb_update_backend_srvs_()
         self.send_response(201)
         self.end_headers()
         self.wfile.write(json.dumps({'name': srv.name}))
@@ -139,6 +152,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         srv = manager._vm_pool_push_()
+        manager._lb_update_backend_srvs_()
         self.send_response(202)
         self.end_headers()
         self.wfile.write(json.dumps({'name': srv.name}))
