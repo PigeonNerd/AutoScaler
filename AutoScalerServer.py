@@ -41,6 +41,9 @@ highRange = 1.2
 #is instantiate
 initialized = False
 
+# is some vm dead
+isDead = 0
+
 """
     we have to maintain one template
 """
@@ -91,13 +94,14 @@ def check_low_load():
 def logging():
     global tick
     global logging_timer
+    global isDead
     print "start to log !"
     f = open(stat_file, "a")
     res_time = 0
     for stat in stat_table:
         res_time += stat["res_time"]
     res_time = res_time / 1.0 / statPeriodBound
-    stat = {"time": tick,"numVMs" : numVMs, "res_time" : res_time}
+    stat = {"time": tick,"numVMs" : numVMs - isDead, "res_time" : res_time}
     json.dump(stat, f)
     f.write("\n")
     f.close
@@ -108,6 +112,16 @@ def logging():
 #Create custom HTTPRequestHandler class
 class TomcatStatusHandler(BaseHTTPRequestHandler):
 
+    def do_PUT(self):
+        self.send_response(201)
+        self.end_headers()
+        global isDead
+        isDead += 1
+    def do_DELETE(self):
+        self.send_response(201)
+        self.end_headers()
+        global isDead
+        isDead -= 1 
     #handle POST command
     def do_POST(self):
         self.send_response(201)
@@ -121,6 +135,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         global logging_timer
         global tick
         global initialized
+        global isDead
 
         # This is to instantiate VMs
         if self.path.endswith('instantiate'):
@@ -157,18 +172,18 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                     print stat_table
                     self._insert(stat)
 
-                    if  numVMs <  template.maxVM and check_high_load():
+                    if  numVMs <  template.maxVM and check_high_load() and isDead < 1:
                         numVMs += 1
                         allocate_vm()
                         print "High load detect ! spawn new VM"
 
-                    elif numVMs == template.maxVM and check_high_load():
+                    elif numVMs == template.maxVM and check_high_load() and isDead < 1:
                         print "High load detect, but already reach max VMs"
-                    elif  numVMs >  template.minVM and check_low_load():
+                    elif  numVMs >  template.minVM and check_low_load() and isDead < 1:
                         numVMs -= 1
                         de_allocate_vm()
                         print "Low load detect ! de-alloc one VM"
-                    elif numVMs == template.minVM and check_low_load():
+                    elif numVMs == template.minVM and check_low_load() and isDead < 1:
                         print "Low load detect, but already reach min VMs"
 
     #insert into the stat table
