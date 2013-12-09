@@ -159,7 +159,7 @@ class PoolManager:
                         self.heartbeats[ip] = (hb, None)
         for ip in to_be_removed:
             del self.heartbeats[ip]  # TODO: remove vm pool's metadata from openstack
-            self._vm_pool_pop_(ip)
+            self._vm_pool_pop_(old_ip=ip)
         print self.heartbeats
         return to_be_removed, newly_recovered
 
