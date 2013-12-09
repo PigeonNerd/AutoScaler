@@ -124,7 +124,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
         self.end_headers()
         global isDead
         isDead -= 1 
-        
+
     #handle POST command
     def do_POST(self):
         self.send_response(201)
@@ -155,6 +155,8 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
            
         elif self.path.endswith('destroy'):
             #finished = True
+            tick = 0
+            stat_table = []
             initialized = False
             logging_timer.cancel()
             while numVMs > 0:
