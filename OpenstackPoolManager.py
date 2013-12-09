@@ -116,7 +116,7 @@ class PoolManager:
                 print 'POP: ' + str(self.heartbeats[ip])
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
-        return self._vm_pool_pop_()
+        return self._vm_pool_pop_(old_ip=old_ip)
 
     def _vm_pool_push_(self):
         for srv in self.cli.servers.list():
