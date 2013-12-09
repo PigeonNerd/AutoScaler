@@ -65,13 +65,13 @@ if __name__ == '__main__':
 	g = Graph('log/load_1/collect.log', "log/load_1/siege.log")
 
 	if sys.argv[1] == 'req':
-		sys.stdout = open('RequestVsTime.pdf', 'w')
+		sys.stdout = open('RequestVsTime3.pdf', 'w')
 		g.drawRequestVsTime()
 	elif sys.argv[1] == 'res':
-		sys.stdout = open('ResVsTime.pdf', 'w')
+		sys.stdout = open('ResVsTime3.pdf', 'w')
 		g.drawResVsTime()
 	elif sys.argv[1] == "vm":
-		sys.stdout = open('VmVsTime.pdf', 'w')
+		sys.stdout = open('VmVsTime3.pdf', 'w')
 		g.drawVMVsTime()
 	else:
 		print "Wrong command, should be one of req, res, vm"
