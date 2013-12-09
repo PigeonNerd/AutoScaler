@@ -145,6 +145,10 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         self.send_response(201)
         self.end_headers()
+        content_type = self.headers.getheader('Content-Type')
+        content_len = self.headers.getheader('Content-Length')
+        post_body = self.rfile.read(int(content_len))
+        print json.loads(post_body)['vm']
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
@@ -166,7 +170,7 @@ if __name__ == '__main__':
     try:
         manager._vm_pool_bulk_(bulk_size=2)
         print 'Initializing Openstack Pool Manager ... '
-        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
+        server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10086), OpenstackAgent)
         print 'Openstack Pool Manager is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
