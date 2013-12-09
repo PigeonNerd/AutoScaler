@@ -110,8 +110,9 @@ class PoolManager:
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
-                self.heartbeats[str(self._open_stack_get_ip_(srv))] = (float(-300), old_ip)
-                print self.heartbeats
+                ip = str(self._open_stack_get_ip_(srv))
+                self.heartbeats[ip] = (float(-300), old_ip)
+                print 'POP: ' + str(self.heartbeats[ip])
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
@@ -120,8 +121,9 @@ class PoolManager:
         for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
-                del self.heartbeats[str(self._open_stack_get_ip_(srv))]
-                print self.heartbeats
+                ip = str(self._open_stack_get_ip_(srv))
+                del self.heartbeats[ip]
+                print 'PUSH: ' + ip
                 return srv
         return None  # nothing to push from pool
 
@@ -138,6 +140,7 @@ class PoolManager:
         if ip in self.heartbeats:
             (_dummy, old_ip) = self.heartbeats[ip]
             self.heartbeats[ip] = (float(time.time()), old_ip)
+            print 'HB: ' + str(self.heartbeats[ip])
 
     def _vm_pool_check(self):
         now = float(time.time())
@@ -155,7 +158,7 @@ class PoolManager:
                         newly_recovered.append(ip)
                         self.heartbeats[ip] = (hb, None)
         for ip in to_be_removed:
-            del self.heartbeats[ip] # TODO: remove vm pool's metadata from openstack
+            del self.heartbeats[ip]  # TODO: remove vm pool's metadata from openstack
             self._vm_pool_pop_(ip)
         print self.heartbeats
         return to_be_removed, newly_recovered
