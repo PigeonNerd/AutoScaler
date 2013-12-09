@@ -3,6 +3,7 @@
 import os
 import json
 import time
+import urllib2
 import BaseHTTPServer
 from novaclient.v1_1 import client
 
@@ -29,6 +30,10 @@ class PoolManager:
         self.password = '123456'
         self.tenant_name = 'admin'
         self.service_url = 'http://openstack-host:5000/v2.0/'
+
+        # vm heartbeats
+        self.heartbeats = {}
+        self.autoscaler_addr = 'http://load-balancer:10088'
 
         # python nova client
         self.cli = client.Client(self.username, self.password,
@@ -76,9 +81,10 @@ class PoolManager:
     def _lb_update_backend_srvs_(self):
         with open(self.lb_servers_list, 'w') as f:
             for srv in self.cli.servers.list():
+                ip = str(self._open_stack_get_ip_(srv))
                 if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                     f.write('        ' + 'server' + ' ' + str(srv.metadata['pool-usage']) + ' ' +
-                            str(self._open_stack_get_ip_(srv)) + ':8080' + ' ' + 'check inter 50000\n')
+                            ip + ':8080' + ' ' + 'check inter 50000\n')
             f.flush()
         os.system(self.lb_reload_script)
 
@@ -100,21 +106,27 @@ class PoolManager:
             self._open_stack_try_create_vm_(srv_name,
                                             {'pool-id': str(self.pool_id), 'pool-state': 'idle', 'pool-usage': 'none'})
 
-    def _vm_pool_pop_(self):
+    def _vm_pool_pop_(self, old_ip=None):
         for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'idle':
                 self.usage_index += 1
                 usage_name = 'web-server-' + str(self.usage_index)
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
+                ip = str(self._open_stack_get_ip_(srv))
+                self.heartbeats[ip] = (float(-500), old_ip)
+                print 'POP: ' + ip + ' - ' + str(self.heartbeats[ip])
                 return srv
         self._vm_pool_bulk_(bulk_size=1)
-        return self._vm_pool_pop_()
+        return self._vm_pool_pop_(old_ip=old_ip)
 
     def _vm_pool_push_(self):
         for srv in self.cli.servers.list():
             if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                 self.cli.servers.set_meta(srv, {'pool-state': 'idle', 'pool-usage': 'none'})
+                ip = str(self._open_stack_get_ip_(srv))
+                del self.heartbeats[ip]
+                print 'PUSH: ' + ip
                 return srv
         return None  # nothing to push from pool
 
@@ -126,6 +138,58 @@ class PoolManager:
                                  'pool-state': str(srv.metadata['pool-state']), 'pool-usage': str(srv.metadata['pool-usage']),
                                  'ip': str(self._open_stack_get_ip_(srv))})
         return srv_list
+
+    def _vm_pool_hb_(self, ip):
+        if ip in self.heartbeats:
+            (_dummy, old_ip) = self.heartbeats[ip]
+            self.heartbeats[ip] = (float(time.time()), old_ip)
+            print 'HB: ' + ip + ' - ' + str(self.heartbeats[ip])
+
+    def _vm_pool_check(self):
+        now = float(time.time())
+        to_be_removed = []
+        newly_recovered = []
+        for ip in self.heartbeats:
+            (hb, old_ip) = self.heartbeats[ip]
+            if hb < 0:
+                self.heartbeats[ip] = (hb + 5, old_ip)
+            else:
+                if hb + 15 < now:
+                    to_be_removed.append(ip)
+                else:
+                    if old_ip is not None:
+                        newly_recovered.append(ip)
+                        self.heartbeats[ip] = (hb, None)
+                        self._unlock_()
+        for ip in to_be_removed:
+            del self.heartbeats[ip]
+            for srv in self.cli.servers.list():
+                if self._is_pool_member(srv) and str(self._open_stack_get_ip_(srv)) == ip:
+                    self.cli.servers.delete(srv)
+            self._vm_pool_pop_(old_ip=ip)
+            self._lock_()
+        print 'CHK: ' + str(self.heartbeats)
+        return to_be_removed, newly_recovered
+
+    def _lock_(self):
+        req = urllib2.Request(self.autoscaler_addr)
+        req.get_method = lambda: 'PUT'
+        try:
+            urllib2.urlopen(req)
+        except urllib2.URLError as ue:
+            print ue.reason
+        except urllib2.HTTPError as he:
+            print "%s - %s" % (he.code, he.reason)
+
+    def _unlock_(self):
+        req = urllib2.Request(self.autoscaler_addr)
+        req.get_method = lambda: 'DELETE'
+        try:
+            urllib2.urlopen(req)
+        except urllib2.URLError as ue:
+            print ue.reason
+        except urllib2.HTTPError as he:
+            print "%s - %s" % (he.code, he.reason)
 
 manager = PoolManager()
 
@@ -139,16 +203,16 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         for srv in srv_list:
             if srv['pool-state'] == 'active':
                 self.wfile.write(srv['pool-usage'] + ' - ' + srv['status'] + '\n')
-        self.wfile.write('TOTAL= ' + str(len(srv_list)) + '\n')
+        self.wfile.write('END LIST\n')
         self.wfile.close()
 
     def do_POST(self):
-        self.send_response(201)
-        self.end_headers()
-        content_type = self.headers.getheader('Content-Type')
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
-        print json.loads(post_body)['vm']
+        ip = str(json.loads(post_body)['vm'])
+        manager._vm_pool_hb_(ip)
+        self.send_response(201)
+        self.end_headers()
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
@@ -164,6 +228,16 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(202)
         self.end_headers()
         self.wfile.write('DEL: ' + srv.name + '\n')
+        self.wfile.close()
+
+    def do_HEAD(self):
+        (failed, recovered) = manager._vm_pool_check()
+        self.send_response(200)
+        self.end_headers()
+        if len(failed) > 0:
+            manager._lb_update_backend_srvs_()
+        self.wfile.write('FAILED: ' + str(failed) + '\n')
+        self.wfile.write('RECOVERED: ' + str(recovered) + '\n')
         self.wfile.close()
 
 if __name__ == '__main__':
