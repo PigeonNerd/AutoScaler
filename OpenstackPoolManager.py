@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import json
 import time
 import BaseHTTPServer
@@ -15,6 +16,8 @@ class PoolManager:
         self.usage_index = 0
         self.pool_indices = []
         self.lazy_start = False
+        self.lb_reload_script = './haproxy/haproxy-reload.sh'
+        self.lb_servers_list = './haproxy/haproxy-servers.cfg'
 
         # vm boot metadata
         self.flavor_id = '101'
@@ -70,6 +73,15 @@ class PoolManager:
             srv.start()
         return srv
 
+    def _lb_update_backend_srvs_(self):
+        with open(self.lb_servers_list, 'w') as f:
+            for srv in self.cli.servers.list():
+                if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
+                    f.write('        ' + 'server' + ' ' + str(srv.metadata['pool-usage']) + ' ' +
+                            str(self._open_stack_get_ip_(srv)) + ':8080' + ' ' + 'check inter 50000\n')
+            f.flush()
+        os.system(self.lb_reload_script)
+
     def _is_pool_member(self, srv):
         if 'pool-id' in srv.metadata:
             if srv.metadata['pool-id'] == self.pool_id:
@@ -96,7 +108,7 @@ class PoolManager:
                 self._open_stack_start_vm_(srv, None)
                 self.cli.servers.set_meta(srv, {'pool-state': 'active', 'pool-usage': usage_name})
                 return srv
-        self._vm_pool_bulk_(bulk_size=2)
+        self._vm_pool_bulk_(bulk_size=1)
         return self._vm_pool_pop_()
 
     def _vm_pool_push_(self):
@@ -127,12 +139,12 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.close()
 
     def do_POST(self):
-        manager._vm_pool_bulk_()
-        self.send_response(204)
+        self.send_response(201)
         self.end_headers()
 
     def do_PUT(self):
         srv = manager._vm_pool_pop_()
+        manager._lb_update_backend_srvs_()
         self.send_response(201)
         self.end_headers()
         self.wfile.write(json.dumps({'name': srv.name}))
@@ -140,6 +152,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_DELETE(self):
         srv = manager._vm_pool_push_()
+        manager._lb_update_backend_srvs_()
         self.send_response(202)
         self.end_headers()
         self.wfile.write(json.dumps({'name': srv.name}))
@@ -147,6 +160,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
     try:
+        manager._vm_pool_bulk_(bulk_size=2)
         server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
         print 'Openstack Agent is Running ... '
         server.serve_forever()
