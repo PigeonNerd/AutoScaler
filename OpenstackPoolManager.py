@@ -137,7 +137,8 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write('SRV-LIST:\n')
         for srv in srv_list:
-            self.wfile.write(srv.name + ' ' + srv.status + '\n')
+            self.wfile.write(srv['name'] + ' - ' + srv['status'] + '\n')
+        self.wfile.write('TOTAL= ' + len(srv_list) + '\n')
         self.wfile.close()
 
     def do_POST(self):
