@@ -135,7 +135,9 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         srv_list = manager._vm_pool_list_()
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(json.dumps(srv_list))
+        self.wfile.write('SRV-LIST:\n')
+        for srv in srv_list:
+            self.wfile.write(srv.name + ' ' + srv.status + '\n')
         self.wfile.close()
 
     def do_POST(self):
@@ -147,7 +149,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         manager._lb_update_backend_srvs_()
         self.send_response(201)
         self.end_headers()
-        self.wfile.write(json.dumps({'name': srv.name}))
+        self.wfile.write('ADD: ' + srv.name + '\n')
         self.wfile.close()
 
     def do_DELETE(self):
@@ -155,15 +157,16 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         manager._lb_update_backend_srvs_()
         self.send_response(202)
         self.end_headers()
-        self.wfile.write(json.dumps({'name': srv.name}))
+        self.wfile.write('DEL: ' + srv.name + '\n')
         self.wfile.close()
 
 if __name__ == '__main__':
     try:
         manager._vm_pool_bulk_(bulk_size=2)
+        print 'Openstack Pool Manager is initialized.'
         server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
-        print 'Openstack Agent is Running ... '
+        print 'Openstack Pool Manager is Running ... '
         server.serve_forever()
     except KeyboardInterrupt:
-        print 'Openstack Agent is Shutting Down ... '
+        print 'Openstack Pool Manager is Shutting Down ... '
         server.shutdown()
