@@ -82,7 +82,7 @@ def check_low_load():
         return False
 
     for stat in stat_table:
-        if stat["res_time"] > 2.0:
+        if stat["res_time"] > 1.8:
             return False
     return True
 
