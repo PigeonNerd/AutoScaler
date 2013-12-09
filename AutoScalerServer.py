@@ -35,7 +35,9 @@ numVMs = 0
 #time tick
 tick = 0
 
-finished = False
+#High load, low load range
+highRange = 1.2
+lowRange  = 0.8
 
 """
     we have to maintain one template
@@ -71,7 +73,7 @@ def check_high_load():
         return False
 
     for stat in stat_table:
-        if stat["res_time"] < template.targetTime:
+        if stat["res_time"] < template.targetTime * highRange:
             return False
     return True
 
@@ -80,7 +82,7 @@ def check_low_load():
         return False
 
     for stat in stat_table:
-        if stat["res_time"] > template.targetTime:
+        if stat["res_time"] > template.targetTime * lowRange:
             return False
     return True
 
@@ -138,6 +140,11 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
                 de_allocate_vm()
         else :
             # Convert json Unicode encoding to string
+            if jsonMessage["count"] == 0 and numVMs > template.minVM:
+                while numVMs > template.minVM:
+                    numVMs --;
+                    de_allocate_vm()
+
             if jsonMessage["count"] != 0:
                 stat = {"res_time": float(jsonMessage["res_time"])};
                 print "Receive %f, Target %f" % (stat["res_time"], template.targetTime)
