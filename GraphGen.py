@@ -63,10 +63,10 @@ class Graph:
 
 if __name__ == '__main__':
 	g = Graph('log/load_1/collect.log', "log/load_1/siege.log")
-	sys.stdout = open('ResVsTime.pdf', 'w')
-	g.drawResVsTime()
+	# sys.stdout = open('ResVsTime.pdf', 'w')
+	# g.drawResVsTime()
 	sys.stdout = open('VmVsTime.pdf', 'w')
 	g.drawVMVsTime()
-	sys.stdout = open('RequestVsTime.pdf', 'w')
-	g.drawRequestVsTime()
+	# sys.stdout = open('RequestVsTime.pdf', 'w')
+	# g.drawRequestVsTime()
 

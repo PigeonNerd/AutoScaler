@@ -89,18 +89,17 @@ def check_low_load():
 def logging():
     global tick
     global logging_timer
-    tick += 2
     print "start to log !"
     f = open(stat_file, "a")
     res_time = 0
     for stat in stat_table:
         res_time += stat["res_time"]
-    if numVMs != 0:
-        res_time = res_time / 1.0 / numVMs
+    res_time = res_time / 1.0 / statPeriodBound
     stat = {"time": tick,"numVMs" : numVMs, "res_time" : res_time}
     json.dump(stat, f)
     f.write("\n")
     f.close
+    tick += 2
     logging_timer = threading.Timer(5, logging)
     logging_timer.start()
 
