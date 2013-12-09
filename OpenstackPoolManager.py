@@ -79,9 +79,10 @@ class PoolManager:
     def _lb_update_backend_srvs_(self):
         with open(self.lb_servers_list, 'w') as f:
             for srv in self.cli.servers.list():
+                ip = str(self._open_stack_get_ip_(srv))
                 if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                     f.write('        ' + 'server' + ' ' + str(srv.metadata['pool-usage']) + ' ' +
-                            str(self._open_stack_get_ip_(srv)) + ':8080' + ' ' + 'check inter 50000\n')
+                            ip + ':8080' + ' ' + 'check inter 50000\n')
             f.flush()
         os.system(self.lb_reload_script)
 
@@ -151,16 +152,19 @@ class PoolManager:
             if hb < 0:
                 self.heartbeats[ip] = (hb + 5, old_ip)
             else:
-                if hb + 10 < now:
+                if hb + 15 < now:
                     to_be_removed.append(ip)
                 else:
                     if old_ip is not None:
                         newly_recovered.append(ip)
                         self.heartbeats[ip] = (hb, None)
         for ip in to_be_removed:
-            del self.heartbeats[ip]  # TODO: remove vm pool's metadata from openstack
+            del self.heartbeats[ip]
+            for srv in self.cli.servers.list():
+                if self._is_pool_member(srv) and str(self._open_stack_get_ip_(srv)) == ip:
+                    self.cli.servers.delete(srv)
             self._vm_pool_pop_(old_ip=ip)
-        print self.heartbeats
+        print 'CHK: ' + str(self.heartbeats)
         return to_be_removed, newly_recovered
 
 manager = PoolManager()
