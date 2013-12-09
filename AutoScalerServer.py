@@ -142,7 +142,7 @@ class TomcatStatusHandler(BaseHTTPRequestHandler):
             # Convert json Unicode encoding to string
             if jsonMessage["count"] == 0 and numVMs > template.minVM:
                 while numVMs > template.minVM:
-                    numVMs --;
+                    numVMs -= 1;
                     de_allocate_vm()
 
             if jsonMessage["count"] != 0:
