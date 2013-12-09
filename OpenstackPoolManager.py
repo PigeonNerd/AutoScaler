@@ -75,7 +75,7 @@ class PoolManager:
 
     def _lb_update_backend_srvs_(self):
         with open(self.lb_servers_list, 'w') as f:
-            for srv in self.cli.servers.list:
+            for srv in self.cli.servers.list():
                 if self._is_pool_member(srv) and srv.metadata['pool-state'] == 'active':
                     f.write('        ' + 'server' + ' ' + str(srv.metadata['pool-usage']) + ' ' +
                             str(self._open_stack_get_ip_(srv)) + ':8080' + ' ' + 'check inter 50000\n')
