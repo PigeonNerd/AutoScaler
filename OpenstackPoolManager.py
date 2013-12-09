@@ -138,7 +138,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.wfile.write('SRV-LIST:\n')
         for srv in srv_list:
             self.wfile.write(srv['name'] + ' - ' + srv['status'] + '\n')
-        self.wfile.write('TOTAL= ' + len(srv_list) + '\n')
+        self.wfile.write('TOTAL= ' + str(len(srv_list)) + '\n')
         self.wfile.close()
 
     def do_POST(self):
@@ -164,7 +164,7 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
 if __name__ == '__main__':
     try:
         manager._vm_pool_bulk_(bulk_size=2)
-        print 'Openstack Pool Manager is initialized.'
+        print 'Initializing Openstack Pool Manager ... '
         server = BaseHTTPServer.HTTPServer(('0.0.0.0', 10085), OpenstackAgent)
         print 'Openstack Pool Manager is Running ... '
         server.serve_forever()
