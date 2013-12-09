@@ -1,0 +1,7 @@
+1. AutoScalerServer.py is the server that makes decision to scale up / down.
+2. AutoScalerCli.py is the client-line command.
+3. HAProxyMonitor.py is the thread that watches the response time logs.
+4. OpenstackPoolAuditor.py watches if a VM is killed.
+5. TomcatMonitor sends heartbeat back to the server.
+6. GraphGen.py is used to generate graphs.
+7. OpenstackPoolManager.py is the pool that maintains a pool of VMs that can be
