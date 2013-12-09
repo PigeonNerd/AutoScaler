@@ -139,6 +139,7 @@ class PoolManager:
     def _vm_pool_check(self):
         now = float(time.time())
         to_be_removed = []
+        newly_recovered = []
         for ip in self.heartbeats:
             (hb, old_ip) = self.heartbeats[ip]
             if hb < 0:
@@ -148,10 +149,12 @@ class PoolManager:
                     to_be_removed.append(ip)
                 else:
                     if old_ip is not None:
+                        newly_recovered.append(ip)
                         self.heartbeats[ip] = (hb, None)
         for ip in to_be_removed:
             del self.heartbeats[ip] # TODO: remove vm pool's metadata from openstack
             self._vm_pool_pop_(ip)
+        return to_be_removed, newly_recovered
 
 manager = PoolManager()
 
@@ -171,7 +174,8 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_POST(self):
         content_len = self.headers.getheader('Content-Length')
         post_body = self.rfile.read(int(content_len))
-        manager._vm_pool_hb_(str(json.loads(post_body)['vm']))
+        ip = str(json.loads(post_body)['vm'])
+        manager._vm_pool_hb_(ip)
         self.send_response(201)
         self.end_headers()
 
@@ -189,6 +193,14 @@ class OpenstackAgent(BaseHTTPServer.BaseHTTPRequestHandler):
         self.send_response(202)
         self.end_headers()
         self.wfile.write('DEL: ' + srv.name + '\n')
+        self.wfile.close()
+
+    def do_HEAD(self):
+        (failed, recovered) = manager._vm_pool_check()
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(str(failed) + '\n')
+        self.wfile.write(str(recovered) + '\n')
         self.wfile.close()
 
 if __name__ == '__main__':
